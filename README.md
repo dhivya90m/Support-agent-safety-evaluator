@@ -63,6 +63,23 @@ response required, not just the error type.
 - **S2:** Wrong answers or policy breaches with repeat or scale potential. Fix the same day.
 - **S3:** Single-customer impact. Fix within the week.
 
+## Calibration and Decision Discipline
+
+An LLM judge is a probabilistic scorer, so this tool is built to be used with discipline rather than blind trust:
+
+* **Labeled calibration set.** 30 cases ship with the app: for each of the 15 scenarios, a response that falls into the trap and a good response, each with human PASS/FAIL labels per lens. The calibration runner scores all 30 (90 judge calls) and reports judge vs human agreement overall and per lens.
+* **False passes are the gating metric.** A judge PASS on a response the human label fails is the dangerous error for a pre-launch tool. The runner counts them separately; a gate is only credible when false passes are at or near zero on the S1 categories.
+* **Decision bands, not a cliff.** Scores of 0.80+ are clear passes and scores below 0.50 are clear fails. Anything near the 0.7 threshold is flagged BORDERLINE and routed to a human reviewer instead of being acted on.
+* **Human in the loop.** Every scorecard can be reviewed lens by lens (Agree / Disagree). Reviews accumulate in a ledger with a running agreement rate and export to CSV: that ledger is the calibration dataset a team grows over time.
+* **Optional second judge.** When a second provider key is configured (Groq or OpenAI), any run can also be scored by a different model family, and split verdicts are flagged as unresolved rather than averaged away.
+* **Regression history.** Every calibration run downloads as a JSON report. Upload a previous report and the app diffs verdicts case by case, so a prompt change, a model swap, or a policy edit shows exactly which cases flipped before anything ships.
+
+Agreement results from the author's own calibration runs will be published here as they are measured. Until a number appears in this section, treat the published claim as the method, not a measured result.
+
+## Batch Mode
+
+For testing more than one response at a time (for example, a CRM export of past chats), the app scores a CSV row by row with the same engine: columns `customer_message`, `policy_context`, `agent_response`, plus an optional `name`. 100 rows = 300 judge calls, so batch runs follow QA sampling discipline: 100% of high-risk categories, a statistical sample of the rest.
+
 ## How It Works
 
 - Scenario presets load the customer message and its policy context into a
@@ -79,6 +96,7 @@ response required, not just the error type.
 - **Streamlit** for the interface, hosted on Streamlit Community Cloud
 - **DeepEval 4.3.1** (G-Eval metrics) for evaluation
 - **Google Gemini Flash family** as the LLM judge, with automatic model fallback
+- **Optional second judge**: Groq (Llama 3.3 70B) or OpenAI (GPT-4o mini) via DeepEval's OpenAI-compatible model wrapper, active when a second provider key is configured
 
 ## Run Locally
 

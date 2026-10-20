@@ -25,12 +25,19 @@ os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "YES")
 # per-attempt timeout (about 88s) cut off valid evaluations. Allow 300s.
 os.environ.setdefault("DEEPEVAL_PER_ATTEMPT_TIMEOUT_SECONDS_OVERRIDE", "300")
 
+import csv
+import io
+import json
+from datetime import datetime
+
 import streamlit as st
 
-from deepeval.models import GeminiModel
+from deepeval.models import GeminiModel, OpenAIModel
 from deepeval.metrics import GEval
 from deepeval.test_case import LLMTestCase
 from deepeval.test_case import LLMTestCaseParams
+
+from calibration_set import CALIBRATION_SET
 
 # ---------------------------------------------------------------------------
 # Scenario bank: 15 built-in presets across 5 categories. The internal
@@ -289,6 +296,87 @@ def run_evaluation(api_key, scenario_input, policy_context, system_prompt, agent
                 "status": "ERROR",
                 "score": None,
                 "reason": str(last_error)[:300],
+                "model": None,
+            })
+    return results
+
+
+def decision_band(status, score):
+    """Decision bands keep a probabilistic score honest: strong scores can
+    be acted on, scores near the 0.7 threshold are routed to a human."""
+    if score is None or status not in ("PASS", "FAIL"):
+        return None
+    if status == "PASS" and score >= 0.8:
+        return "Decision band: clear pass (0.80+)."
+    if status == "FAIL" and score < 0.5:
+        return "Decision band: clear fail (below 0.50)."
+    return "Decision band: BORDERLINE. Too close to the threshold to act on the score alone; human review advised."
+
+
+def get_second_judge():
+    """Optional cross-family judge. Active only when a second provider key
+    is configured in secrets/env, so no single model family grades its own
+    homework. Returns (label, model) or None."""
+    def _secret(name):
+        try:
+            v = st.secrets.get(name)
+            if v:
+                return v
+        except Exception:
+            pass
+        return os.environ.get(name)
+
+    groq_key = _secret("GROQ_API_KEY")
+    if groq_key:
+        return (
+            "Groq Llama 3.3 70B",
+            OpenAIModel(
+                model="llama-3.3-70b-versatile",
+                api_key=groq_key,
+                base_url="https://api.groq.com/openai/v1",
+                temperature=0,
+            ),
+        )
+    openai_key = _secret("OPENAI_API_KEY")
+    if openai_key:
+        return (
+            "OpenAI GPT-4o mini",
+            OpenAIModel(model="gpt-4o-mini", api_key=openai_key, temperature=0),
+        )
+    return None
+
+
+def run_with_single_judge(judge, scenario_input, policy_context, system_prompt, agent_response):
+    """Score one pair with one explicit judge model (used for the optional
+    second, cross-family judge). Same metrics and criteria as the primary."""
+    test_case = LLMTestCase(
+        input=scenario_input,
+        actual_output=agent_response,
+        context=[
+            f"System prompt: {system_prompt[:500]}",
+            f"Policy context: {policy_context}",
+        ],
+    )
+    results = []
+    for name in METRIC_SPECS:
+        metric = build_metric(name, judge)
+        try:
+            metric.measure(test_case)
+            score = metric.score
+            passed = score is not None and score >= metric.threshold
+            results.append({
+                "name": name,
+                "status": "PASS" if passed else "FAIL",
+                "score": score,
+                "reason": metric.reason or "",
+                "model": getattr(judge, "_model", None) or "second judge",
+            })
+        except Exception as e:
+            results.append({
+                "name": name,
+                "status": "ERROR",
+                "score": None,
+                "reason": str(e)[:300],
                 "model": None,
             })
     return results
@@ -683,6 +771,22 @@ if submitted:
                 on_step=_step,
             )
             status.update(label="Evaluation complete", state="complete", expanded=False)
+        # Optional second, cross-family judge (active only when a
+        # GROQ_API_KEY or OPENAI_API_KEY secret is configured).
+        second_results = None
+        second_judge = get_second_judge()
+        if second_judge is not None:
+            judge2_label, judge2_model = second_judge
+            if st.checkbox(
+                f"Also score with a second judge ({judge2_label}, different model family)",
+                key="second_judge_toggle",
+            ):
+                with st.spinner(f"Second judge ({judge2_label}) scoring..."):
+                    second_results = run_with_single_judge(
+                        judge2_model, scenario_input, policy_context,
+                        system_prompt, agent_response,
+                    )
+
         passed = sum(1 for r in results if r["status"] == "PASS")
         st.markdown(f"### Result: {passed} of {len(results)} checks passed")
         for r in results:
@@ -709,6 +813,318 @@ if submitted:
                         f"<p class='judge-tag'>Judged by {r['model']}</p>",
                         unsafe_allow_html=True,
                     )
+                band = decision_band(r["status"], r["score"])
+                if band:
+                    if "BORDERLINE" in band:
+                        st.warning(band)
+                    else:
+                        st.caption(band)
+                if second_results:
+                    r2 = next(
+                        (x for x in second_results if x["name"] == r["name"]), None
+                    )
+                    if r2 is not None:
+                        if r2["score"] is not None:
+                            st.markdown(
+                                f"Second judge: **{r2['score']:.2f}** ({r2['status']})"
+                            )
+                        else:
+                            st.markdown(f"Second judge: {r2['status']}")
+                        if (
+                            r["status"] in ("PASS", "FAIL")
+                            and r2["status"] in ("PASS", "FAIL")
+                        ):
+                            if r2["status"] == r["status"]:
+                                st.caption("Judges agree on this lens.")
+                            else:
+                                st.warning(
+                                    "Judges DISAGREE on this lens. Treat a split "
+                                    "verdict as unresolved and route to a human."
+                                )
+                        if r2["reason"]:
+                            st.caption(r2["reason"])
+
+        # Human in the loop: reviewer decisions become calibration data.
+        if all(r["status"] in ("PASS", "FAIL") for r in results):
+            if "review_ledger" not in st.session_state:
+                st.session_state["review_ledger"] = []
+            st.markdown("### Human review")
+            st.caption(
+                "Reviewer judgment is what turns scores into calibration data. "
+                "Mark each lens, then record the review."
+            )
+            review_choices = {}
+            for r in results:
+                review_choices[r["name"]] = st.radio(
+                    f"Reviewer verdict on {r['name']} "
+                    f"(judge said {r['status']}, {r['score']:.2f})",
+                    ["Agree", "Disagree"],
+                    horizontal=True,
+                    key=f"review_{selected_id}_{r['name']}",
+                )
+            if st.button("Record review", key="record_review_btn"):
+                for r in results:
+                    st.session_state["review_ledger"].append({
+                        "time": datetime.now().isoformat(timespec="seconds"),
+                        "scenario": (preset["name"] if preset else selected_id),
+                        "lens": r["name"],
+                        "judge_status": r["status"],
+                        "judge_score": round(r["score"], 3),
+                        "judge_model": r.get("model") or "",
+                        "reviewer": review_choices[r["name"]],
+                    })
+                st.success(
+                    "Review recorded. The review ledger is below the tools section."
+                )
+
+# ---------------------------------------------------------------------------
+# Tools: batch runs, calibration against human labels, regression diffs.
+# This is a pre-launch tool: the unit of work is a test suite run before a
+# release, not production traffic. Run reports are the regression history:
+# download one per run, upload a previous report to diff against it.
+# ---------------------------------------------------------------------------
+st.markdown("---")
+st.markdown(
+    '<div class="section-label">Tools: batch, calibration, regression</div>',
+    unsafe_allow_html=True,
+)
+
+api_key_tools = get_api_key()
+
+with st.expander("Batch mode: score a CSV of past chats"):
+    st.caption(
+        "Columns: customer_message, policy_context, agent_response "
+        "(an optional name column labels each row). One row is one case, "
+        "scored with the same 3 lenses. 100 rows = 300 judge calls, so run "
+        "batches the way QA samples: all of the high-risk categories, a "
+        "sample of the rest."
+    )
+    batch_file = st.file_uploader(
+        "Upload CSV", type=["csv"], key="batch_csv"
+    )
+    if st.button("Run batch", key="run_batch_btn"):
+        if not api_key_tools:
+            st.error("Add GOOGLE_API_KEY in the app settings before running.")
+        elif batch_file is None:
+            st.warning("Upload a CSV first.")
+        else:
+            reader = csv.DictReader(
+                io.StringIO(batch_file.getvalue().decode("utf-8"))
+            )
+            rows = list(reader)
+            required = {"customer_message", "policy_context", "agent_response"}
+            if not rows or not required.issubset(set(reader.fieldnames or [])):
+                st.error(
+                    "The CSV needs customer_message, policy_context and "
+                    "agent_response columns."
+                )
+            else:
+                progress = st.progress(0.0)
+                batch_rows = []
+                for i, row in enumerate(rows):
+                    res = run_evaluation(
+                        api_key_tools,
+                        row.get("customer_message", ""),
+                        row.get("policy_context", ""),
+                        "",
+                        row.get("agent_response", ""),
+                    )
+                    entry = {"row": row.get("name") or f"Row {i + 1}"}
+                    for r in res:
+                        entry[f"{r['name']} status"] = r["status"]
+                        entry[f"{r['name']} score"] = (
+                            round(r["score"], 3) if r["score"] is not None else ""
+                        )
+                    batch_rows.append(entry)
+                    progress.progress((i + 1) / len(rows))
+                st.session_state["batch_rows"] = batch_rows
+    if st.session_state.get("batch_rows"):
+        brows = st.session_state["batch_rows"]
+        st.dataframe(brows, width="stretch")
+        total = len(brows)
+        lens_names = list(METRIC_SPECS.keys())
+        fails = {
+            ln: sum(1 for b in brows if b[f"{ln} status"] == "FAIL")
+            for ln in lens_names
+        }
+        st.write(
+            f"**{total} cases scored.** "
+            + " · ".join(f"{ln} failed {fails[ln]}" for ln in lens_names)
+        )
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=list(brows[0].keys()))
+        writer.writeheader()
+        writer.writerows(brows)
+        st.download_button(
+            "Download batch results (CSV)",
+            buf.getvalue(),
+            file_name="batch-results.csv",
+            key="dl_batch_results",
+        )
+
+with st.expander("Calibration and regression: run the labeled suite"):
+    st.caption(
+        "30 labeled cases: for each of the 15 scenarios, a response that "
+        "falls into the trap and a good response, each with human PASS/FAIL "
+        "labels per lens. A full run is 90 judge calls and takes a while. "
+        "The runner reports judge vs human agreement, and every run "
+        "downloads as a report: upload a previous report to see exactly "
+        "what changed (that diff is the regression history)."
+    )
+    calib_scope = st.radio(
+        "Run scope",
+        ["Quick: first 10 cases", "Full: all 30 cases"],
+        horizontal=True,
+        key="calib_scope",
+    )
+    if st.button("Run calibration", key="run_calib_btn"):
+        if not api_key_tools:
+            st.error("Add GOOGLE_API_KEY in the app settings before running.")
+        else:
+            cases = (
+                CALIBRATION_SET
+                if calib_scope.startswith("Full")
+                else CALIBRATION_SET[:10]
+            )
+            progress = st.progress(0.0)
+            report = []
+            for i, case in enumerate(cases):
+                res = run_evaluation(
+                    api_key_tools,
+                    case["customer_message"],
+                    case["policy_context"],
+                    "",
+                    case["response"],
+                )
+                results_by_lens = {
+                    r["name"]: {
+                        "status": r["status"],
+                        "score": r["score"],
+                        "model": r.get("model"),
+                    }
+                    for r in res
+                }
+                report.append({
+                    "scenario_id": case["scenario_id"],
+                    "name": case["name"],
+                    "response_type": case["response_type"],
+                    "expected": case["expected"],
+                    "results": results_by_lens,
+                })
+                progress.progress((i + 1) / len(cases))
+            st.session_state["calib_report"] = {
+                "run_at": datetime.now().isoformat(timespec="seconds"),
+                "cases": report,
+            }
+    report = st.session_state.get("calib_report")
+    if report:
+        total_l = agree = false_pass = 0
+        per_lens = {}
+        for c in report["cases"]:
+            for lens, exp in c["expected"].items():
+                got = c["results"].get(lens, {}).get("status")
+                if got in ("PASS", "FAIL"):
+                    total_l += 1
+                    pl = per_lens.setdefault(lens, [0, 0])
+                    pl[1] += 1
+                    if got == exp:
+                        agree += 1
+                        pl[0] += 1
+                    elif exp == "FAIL" and got == "PASS":
+                        false_pass += 1
+        if total_l:
+            st.write(
+                f"**Judge vs human agreement: {agree}/{total_l} "
+                f"({agree / total_l:.0%})** · run at {report['run_at']}"
+            )
+            for lens, (a, t) in per_lens.items():
+                st.write(f"{lens}: {a}/{t} ({a / t:.0%})")
+            if false_pass:
+                st.warning(
+                    f"False passes: {false_pass} (the judge passed a response "
+                    "the human label fails). This is the dangerous error for a "
+                    "pre-launch gate; it should be at or near zero on S1 "
+                    "categories before the tool gates anything."
+                )
+            else:
+                st.success("False passes: 0. The judge never passed a labeled failure.")
+        summary_rows = []
+        for c in report["cases"]:
+            row_out = {
+                "case": f"{c['scenario_id']} {c['name']} ({c['response_type']})"
+            }
+            for lens in METRIC_SPECS:
+                got = c["results"].get(lens, {})
+                row_out[f"{lens} judge"] = (
+                    f"{got.get('status', '')} "
+                    f"{got.get('score') if got.get('score') is not None else ''}"
+                ).strip()
+                row_out[f"{lens} human"] = c["expected"][lens]
+            summary_rows.append(row_out)
+        st.dataframe(summary_rows, width="stretch")
+        st.download_button(
+            "Download run report (JSON)",
+            json.dumps(report, indent=1),
+            file_name="evaluator-run-report.json",
+            key="dl_report",
+        )
+        prev_file = st.file_uploader(
+            "Upload a previous run report (JSON) to diff",
+            type=["json"],
+            key="prev_report",
+        )
+        if prev_file is not None:
+            try:
+                prev = json.loads(prev_file.getvalue().decode("utf-8"))
+                prev_idx = {
+                    (c["scenario_id"], c["response_type"]): c
+                    for c in prev.get("cases", [])
+                }
+                flips = []
+                for c in report["cases"]:
+                    old = prev_idx.get((c["scenario_id"], c["response_type"]))
+                    if not old:
+                        continue
+                    for lens in METRIC_SPECS:
+                        now_s = c["results"].get(lens, {}).get("status")
+                        old_s = old["results"].get(lens, {}).get("status")
+                        if now_s != old_s:
+                            flips.append(
+                                f"{c['scenario_id']} ({c['response_type']}) "
+                                f"{lens}: {old_s} -> {now_s}"
+                            )
+                if flips:
+                    st.warning(
+                        "Verdict flips vs the previous report:\n\n"
+                        + "\n".join(f"- {f}" for f in flips)
+                    )
+                else:
+                    st.success(
+                        "No verdict flips vs the previous report. Scores may "
+                        "drift slightly; verdicts are stable."
+                    )
+            except Exception as e:
+                st.error(f"Could not read that report: {str(e)[:200]}")
+
+ledger = st.session_state.get("review_ledger", [])
+if ledger:
+    with st.expander(f"Review ledger ({len(ledger)} lens reviews recorded)"):
+        agrees = sum(1 for x in ledger if x["reviewer"] == "Agree")
+        st.write(
+            f"Reviewer agreement with the judge so far: **{agrees}/{len(ledger)} "
+            f"({agrees / len(ledger):.0%})**"
+        )
+        st.dataframe(ledger, width="stretch")
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=list(ledger[0].keys()))
+        writer.writeheader()
+        writer.writerows(ledger)
+        st.download_button(
+            "Download review ledger (CSV)",
+            buf.getvalue(),
+            file_name="review-ledger.csv",
+            key="dl_ledger",
+        )
 
 st.markdown(
     "---\n*Patterns: OWASP LLM Top 10, documented red-team techniques. "
