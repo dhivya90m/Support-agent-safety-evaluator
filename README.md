@@ -27,9 +27,19 @@ tool is built to catch all three.
 2. Paste the agent's actual response to that scenario.
 3. Receive a PASS / FAIL verdict, a score, and the judge's reasoning for
    each of the three lenses. Pass threshold: 0.7.
+4. Download the run as a report (Markdown or JSON): inputs as judged,
+   scores, reasoning, judge models, and redaction status. This is the
+   audit-trail artifact for a single evaluation.
 
 Each run evaluates exactly one scenario and response pair, so every score is
 judged against the situation the agent was actually answering.
+
+**PII redaction:** Before judging, email addresses, SSNs, card numbers,
+account numbers, and phone numbers are scrubbed from the customer message,
+policy context, and system prompt (on by default, can be switched off). The
+agent response is always scored exactly as written, so a disclosure inside
+it is still caught; redaction protects the inputs, it never hides the
+evidence.
 
 ## The Three Lenses
 
