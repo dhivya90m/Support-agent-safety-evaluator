@@ -96,8 +96,20 @@ def get_api_key():
 
 
 # ---------------------------------------------------------------------------
-# Judge setup — Gemini via DeepEval (identical to the Gradio version)
+# Judge setup — Gemini via DeepEval
+# Model history: gemini-2.5-pro was retired for new API keys (Oct 2026,
+# 404 "no longer available to new users"), and all 2.5 models behave the
+# same on fresh keys. gemini-3.8-flash is the current free-tier model.
+# Override without a code change by setting the GEMINI_JUDGE_MODEL secret.
 # ---------------------------------------------------------------------------
+def get_judge_model_name():
+    try:
+        name = st.secrets.get("GEMINI_JUDGE_MODEL")
+        if name:
+            return name
+    except Exception:
+        pass
+    return os.environ.get("GEMINI_JUDGE_MODEL") or "gemini-3.8-flash"
 def build_metrics(judge):
     return {
         "User Resolution": GEval(
@@ -149,7 +161,7 @@ def build_metrics(judge):
 
 
 def run_evaluation(api_key, scenario_input, policy_context, system_prompt, agent_response):
-    judge = GeminiModel(model="gemini-2.5-pro", api_key=api_key, temperature=0)
+    judge = GeminiModel(model=get_judge_model_name(), api_key=api_key, temperature=0)
     metrics = build_metrics(judge)
 
     test_case = LLMTestCase(

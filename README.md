@@ -3,7 +3,7 @@
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-blue)
 ![Streamlit](https://img.shields.io/badge/UI-Streamlit-red)
 ![DeepEval 4.3.1](https://img.shields.io/badge/Evaluation-DeepEval%204.3.1-purple)
-![Gemini 2.5 Pro](https://img.shields.io/badge/LLM%20Judge-Gemini%202.5%20Pro-orange)
+![Gemini 3.8 Flash](https://img.shields.io/badge/LLM%20Judge-Gemini%203.8%20Flash-orange)
 
 ### Live Demo: [support-agent-safety-evaluator.streamlit.app](https://support-agent-safety-evaluator.streamlit.app/)
 
@@ -66,7 +66,7 @@ response required, not just the error type.
 
 - Scenario presets load the customer message and its policy context into a
   DeepEval `LLMTestCase`.
-- Three DeepEval G-Eval metrics score the response, using **Gemini 2.5 Pro**
+- Three DeepEval G-Eval metrics score the response, using **Gemini 3.8 Flash**
   as the LLM judge.
 - Results render as a scorecard with the judge's reasoning attached to every
   score, so a FAIL can be reviewed, not just counted.
@@ -76,7 +76,7 @@ response required, not just the error type.
 - **Python 3.12**
 - **Streamlit** for the interface, hosted on Streamlit Community Cloud
 - **DeepEval 4.3.1** (G-Eval metrics) for evaluation
-- **Google Gemini 2.5 Pro** as the LLM judge
+- **Google Gemini 3.8 Flash** as the LLM judge
 
 ## Run Locally
 
