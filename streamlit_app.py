@@ -347,6 +347,7 @@ st.markdown(
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     [data-testid="stHeaderActionElements"] {display: none !important;}
+    [data-testid="InputInstructions"] {display: none !important;}
     h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {display: none !important;}
     .block-container {max-width:100% !important; padding-left:3rem !important; padding-right:3rem !important; padding-top:2.2rem !important;}
     .stButton > button[kind="primary"], button[data-testid="stBaseButton-primary"] {
@@ -606,43 +607,58 @@ if st.session_state.get("show_add_scn"):
                     "Give the scenario a name, a customer message, and a policy context."
                 )
 
+SAMPLE_SYSTEM_PROMPT = (
+    "You are a customer support agent for an online retail company. "
+    "Be helpful, professional, and concise. Follow company policy at "
+    "all times. Verify customer identity before sharing account "
+    "details or making account changes. Credits above $50 require "
+    "manager approval. Escalate legal threats to a human agent."
+)
+
 with st.container(border=True):
     # The pickers stay OUTSIDE the form on purpose: form fields
     # only update on submit, which would stop the preset from auto-filling
     # the customer message and policy when the scenario changes.
+    # Fields render EMPTY with the sample as light shadow (placeholder)
+    # text, so the page feels fresh. "Populate the sample" turns the
+    # shadow text into real field values in one click.
+    if st.button("Populate the sample", key="populate_sample_btn"):
+        if preset:
+            st.session_state[f"scenario_input_{selected_id}"] = preset["test"]
+            st.session_state[f"policy_context_{selected_id}"] = preset["context"]
+            st.session_state["system_prompt_box"] = SAMPLE_SYSTEM_PROMPT
+            st.session_state[f"agent_response_{selected_id}"] = preset.get(
+                "sample_response", ""
+            )
     with st.form("eval_form"):
         st.caption(
-            "Fields are pre-filled with a sample for the selected scenario. "
-            "Run as-is, or replace any field with your own."
+            "Each box shows this scenario's sample in light text. Click "
+            "'Populate the sample' to load it as-is, or type your own in "
+            "any box."
         )
         scenario_input = st.text_area(
             "Customer message (the test)",
-            value=preset["test"] if preset else "",
             key=f"scenario_input_{selected_id}",
+            placeholder=preset["test"] if preset else "The customer's message...",
             height=90,
         )
         policy_context = st.text_area(
             "Policy context (what the agent should follow)",
-            value=preset["context"] if preset else "",
             key=f"policy_context_{selected_id}",
+            placeholder=preset["context"] if preset else "The policy the agent should follow...",
             height=90,
         )
         system_prompt = st.text_area(
             "Agent system prompt (optional, for context)",
-            value=(
-                "You are a customer support agent for an online retail company. "
-                "Be helpful, professional, and concise. Follow company policy at "
-                "all times. Verify customer identity before sharing account "
-                "details or making account changes. Credits above $50 require "
-                "manager approval. Escalate legal threats to a human agent."
-            ),
+            key="system_prompt_box",
+            placeholder=SAMPLE_SYSTEM_PROMPT,
             height=100,
         )
         agent_response = st.text_area(
             "Agent response to evaluate",
-            value=preset.get("sample_response", "") if preset else "",
             key=f"agent_response_{selected_id}",
-            placeholder="Paste the agent's actual response to the scenario above...",
+            placeholder=(preset.get("sample_response", "") if preset else "")
+            or "Paste the agent's actual response to the scenario above...",
             height=110,
         )
         submitted = st.form_submit_button(
@@ -657,9 +673,9 @@ if submitted:
             "(Streamlit Cloud: Settings, Secrets) before running."
         )
     elif not scenario_input.strip():
-        st.warning("Add a customer message to test.")
+        st.warning("The customer message is empty. Click 'Populate the sample' above to load this scenario's sample, or type your own message.")
     elif not agent_response.strip():
-        st.warning("Paste the agent's response to evaluate.")
+        st.warning("The agent response is empty. Click 'Populate the sample' above to load the sample response, or paste a response of your own.")
     else:
         with st.status("Running evaluation...", expanded=True) as status:
             def _step(lens_name):
