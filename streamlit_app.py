@@ -285,6 +285,13 @@ st.markdown(
            padding:0.9rem 1.2rem; text-align:center; font-weight:700; letter-spacing:0.08em;}
     .flow span {color:#C8F169;}
     .section-label {color:#C8F169; font-size:0.78rem; font-weight:700; letter-spacing:0.22em; margin-top:1.6rem;}
+    div[data-testid="stVerticalBlockBorderWrapper"] {border-radius:12px; border-color:#2A332C !important; box-shadow:0 2px 10px rgba(0,0,0,0.35);}
+    .fail-header {color:#F87171; font-weight:700; font-size:1.08rem; margin-bottom:0;}
+    .pass-header {color:#4ADE80; font-weight:700; font-size:1.08rem; margin-bottom:0;}
+    .error-header {color:#FBBF24; font-weight:700; font-size:1.08rem; margin-bottom:0;}
+    .judge-tag {color:#8A947F; font-size:0.78rem; font-family:monospace;}
+    div[data-testid="stFormSubmitButton"] > button {color:#0C0F0E !important; font-weight:800 !important;}
+    div[data-testid="stFormSubmitButton"] > button p {color:#0C0F0E !important; font-weight:800 !important;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -308,26 +315,26 @@ st.markdown('<div class="section-label">THE PROBLEM</div>', unsafe_allow_html=Tr
 st.markdown("### Three ways a \"helpful\" agent becomes an incident")
 pcol1, pcol2, pcol3 = st.columns(3)
 with pcol1:
-    st.markdown(
-        '<div class="card"><h4>It leaks <span class="sev">S1</span></h4>'
-        "<p>A customer asks for account details. The agent skips identity verification "
-        "and shares them. One chat, one privacy breach, one compliance problem.</p></div>",
-        unsafe_allow_html=True,
-    )
+    with st.container(border=True):
+        st.markdown("#### It leaks :red-badge[S1]")
+        st.markdown(
+            "A customer asks for account details. The agent skips identity verification "
+            "and shares them. **One chat, one privacy breach, one compliance problem.**"
+        )
 with pcol2:
-    st.markdown(
-        '<div class="card"><h4>It invents <span class="sev">S2</span></h4>'
-        "<p>Asked about a return window, the agent states 90 days when policy says 30. "
-        "The customer was satisfied. The company now owns a promise it never made.</p></div>",
-        unsafe_allow_html=True,
-    )
+    with st.container(border=True):
+        st.markdown("#### It invents :orange-badge[S2]")
+        st.markdown(
+            "Asked about a return window, the agent states 90 days when policy says 30. "
+            "The customer was satisfied. **The company now owns a promise it never made.**"
+        )
 with pcol3:
-    st.markdown(
-        '<div class="card"><h4>It caves <span class="sev">S1</span></h4>'
-        "<p>A high-value customer threatens a lawsuit. The agent issues a $500 credit "
-        "against a $50 authority limit. Pressure worked, so it will be used again.</p></div>",
-        unsafe_allow_html=True,
-    )
+    with st.container(border=True):
+        st.markdown("#### It caves :red-badge[S1]")
+        st.markdown(
+            "A high-value customer threatens a lawsuit. The agent issues a $500 credit "
+            "against a $50 authority limit. **Pressure worked, so it will be used again.**"
+        )
 
 st.markdown(
     '<div class="flow">SELECT A FAILURE SCENARIO <span>&rarr;</span> PASTE THE AGENT RESPONSE '
@@ -377,30 +384,41 @@ selected_id = st.selectbox(
 
 preset = next((s for s in SCENARIOS if s["id"] == selected_id), None)
 
-scenario_input = st.text_area(
-    "Customer message (the test)",
-    value=preset["test"] if preset else "",
-    key=f"scenario_input_{selected_id}",
-    height=80,
-)
-policy_context = st.text_area(
-    "Policy context (what the agent should follow)",
-    value=preset["context"] if preset else "",
-    key=f"policy_context_{selected_id}",
-    height=80,
-)
-system_prompt = st.text_area(
-    "Agent system prompt (optional, for context)",
-    placeholder="Paste the system prompt the agent was running...",
-    height=100,
-)
-agent_response = st.text_area(
-    "Agent response to evaluate",
-    placeholder="Paste the agent's actual response to the scenario above...",
-    height=120,
-)
+with st.container(border=True):
+    # The scenario selectbox stays OUTSIDE the form on purpose: form fields
+    # only update on submit, which would stop the preset from auto-filling
+    # the customer message and policy when the scenario changes.
+    with st.form("eval_form"):
+        icol1, icol2 = st.columns(2)
+        with icol1:
+            scenario_input = st.text_area(
+                "Customer message (the test)",
+                value=preset["test"] if preset else "",
+                key=f"scenario_input_{selected_id}",
+                height=110,
+            )
+            policy_context = st.text_area(
+                "Policy context (what the agent should follow)",
+                value=preset["context"] if preset else "",
+                key=f"policy_context_{selected_id}",
+                height=110,
+            )
+        with icol2:
+            system_prompt = st.text_area(
+                "Agent system prompt (optional, for context)",
+                placeholder="Paste the system prompt the agent was running...",
+                height=110,
+            )
+            agent_response = st.text_area(
+                "Agent response to evaluate",
+                placeholder="Paste the agent's actual response to the scenario above...",
+                height=110,
+            )
+        submitted = st.form_submit_button(
+            "Get 3-Lens Scorecard", type="primary", width="stretch"
+        )
 
-if st.button("Run Evaluation", type="primary"):
+if submitted:
     api_key = get_api_key()
     if not api_key:
         st.error(
@@ -417,18 +435,31 @@ if st.button("Run Evaluation", type="primary"):
                 api_key, scenario_input, policy_context, system_prompt, agent_response
             )
         passed = sum(1 for r in results if r["status"] == "PASS")
-        st.subheader(f"Result: {passed} of {len(results)} checks passed")
+        st.markdown(f"### Result: {passed} of {len(results)} checks passed")
         for r in results:
-            if r["status"] == "PASS":
-                st.success(f"**{r['name']}:** PASS (score: {r['score']:.2f})")
-            elif r["status"] == "FAIL":
-                st.error(f"**{r['name']}:** FAIL (score: {r['score']:.2f})")
-            else:
-                st.warning(f"**{r['name']}:** ERROR")
-            if r["reason"]:
-                st.markdown(f"> {r['reason']}")
-            if r.get("model"):
-                st.caption(f"Judged by {r['model']}")
+            with st.container(border=True):
+                if r["status"] == "PASS":
+                    st.markdown(
+                        f"<p class='pass-header'>{r['name']}: PASS (score: {r['score']:.2f})</p>",
+                        unsafe_allow_html=True,
+                    )
+                elif r["status"] == "FAIL":
+                    st.markdown(
+                        f"<p class='fail-header'>{r['name']}: FAIL (score: {r['score']:.2f})</p>",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        f"<p class='error-header'>{r['name']}: ERROR</p>",
+                        unsafe_allow_html=True,
+                    )
+                if r["reason"]:
+                    st.write(r["reason"])
+                if r.get("model"):
+                    st.markdown(
+                        f"<p class='judge-tag'>Judged by {r['model']}</p>",
+                        unsafe_allow_html=True,
+                    )
 
 st.markdown(
     "---\n*Patterns: OWASP LLM Top 10, documented red-team techniques. "
