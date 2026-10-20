@@ -255,12 +255,85 @@ def run_evaluation(api_key, scenario_input, policy_context, system_prompt, agent
 # ---------------------------------------------------------------------------
 # Streamlit UI
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Support Agent Safety Evaluator", page_icon="🛡️")
-st.title("Support Agent Safety Evaluator")
+st.set_page_config(page_title="Support Agent Safety Evaluator", page_icon="🛡️", layout="wide")
+
+# ---------------------------------------------------------------------------
+# Presentation layer only. The evaluation logic above is unchanged.
+# ---------------------------------------------------------------------------
 st.markdown(
-    "Evaluate **one** support agent response against **one** failure scenario, "
-    "scored across three stakeholder lenses using DeepEval G-Eval with Gemini as judge. "
-    "One run uses 3 judge calls."
+    """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    .eyebrow {color:#C8F169; font-size:0.8rem; font-weight:700; letter-spacing:0.22em; margin-bottom:0.4rem;}
+    .hero-title {font-size:2.6rem; font-weight:800; line-height:1.12; margin:0 0 0.6rem 0;}
+    .hero-sub {font-size:1.08rem; color:#C9D1C0; max-width:52rem; line-height:1.55;}
+    .card {background:#161B19; border:1px solid #2A332C; border-top:3px solid #C8F169;
+           border-radius:10px; padding:1rem 1.1rem; height:100%;}
+    .card h4 {margin:0 0 0.35rem 0; font-size:1.02rem;}
+    .card p {color:#C9D1C0; font-size:0.92rem; line-height:1.5; margin:0;}
+    .sev {color:#0C0F0E; background:#C8F169; border-radius:4px; padding:0.05rem 0.45rem;
+          font-size:0.72rem; font-weight:800; letter-spacing:0.06em;}
+    .flow {background:#10140F; border:1px solid #2A332C; border-radius:10px;
+           padding:0.9rem 1.2rem; text-align:center; font-weight:700; letter-spacing:0.08em;}
+    .flow span {color:#C8F169;}
+    .section-label {color:#C8F169; font-size:0.78rem; font-weight:700; letter-spacing:0.22em; margin-top:1.6rem;}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown('<div class="eyebrow">AI SUPPORT AGENT EVALUATION</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="hero-title">Your agent passed the demo.<br>Would it survive production?</div>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<div class="hero-sub">Passing an eval only proves the agent can sound helpful. '
+    "In production, the expensive failures are quieter: private data handed out without "
+    "verification, policies invented on the spot, limits abandoned under pressure. "
+    "This evaluator scores one agent response the way a support operations team would, "
+    "across three stakeholder lenses, before it ever reaches a customer.</div>",
+    unsafe_allow_html=True,
+)
+
+st.markdown('<div class="section-label">THE PROBLEM</div>', unsafe_allow_html=True)
+st.markdown("### Three ways a \"helpful\" agent becomes an incident")
+pcol1, pcol2, pcol3 = st.columns(3)
+with pcol1:
+    st.markdown(
+        '<div class="card"><h4>It leaks <span class="sev">S1</span></h4>'
+        "<p>A customer asks for account details. The agent skips identity verification "
+        "and shares them. One chat, one privacy breach, one compliance problem.</p></div>",
+        unsafe_allow_html=True,
+    )
+with pcol2:
+    st.markdown(
+        '<div class="card"><h4>It invents <span class="sev">S2</span></h4>'
+        "<p>Asked about a return window, the agent states 90 days when policy says 30. "
+        "The customer was satisfied. The company now owns a promise it never made.</p></div>",
+        unsafe_allow_html=True,
+    )
+with pcol3:
+    st.markdown(
+        '<div class="card"><h4>It caves <span class="sev">S1</span></h4>'
+        "<p>A high-value customer threatens a lawsuit. The agent issues a $500 credit "
+        "against a $50 authority limit. Pressure worked, so it will be used again.</p></div>",
+        unsafe_allow_html=True,
+    )
+
+st.markdown(
+    '<div class="flow">SELECT A FAILURE SCENARIO <span>&rarr;</span> PASTE THE AGENT RESPONSE '
+    '<span>&rarr;</span> GET THE 3-LENS SCORECARD</div>',
+    unsafe_allow_html=True,
+)
+
+st.markdown('<div class="section-label">THE EVALUATOR</div>', unsafe_allow_html=True)
+st.markdown("## Run an evaluation")
+st.markdown(
+    "Pick a scenario, paste the agent's actual response to it, and run. "
+    "Scoring uses DeepEval G-Eval with a Gemini judge. One run uses 3 judge calls, "
+    "with automatic fallback if a judge model is unavailable."
 )
 
 with st.sidebar:
@@ -352,5 +425,7 @@ if st.button("Run Evaluation", type="primary"):
 
 st.markdown(
     "---\n*Patterns: OWASP LLM Top 10, documented red-team techniques. "
-    "Operational framing: enterprise support operations experience.*"
+    "Operational framing: enterprise support operations experience.*\n\n"
+    "*Built for support operations: severity, escalation, and stakeholder impact, "
+    "applied to AI agent evaluation.*"
 )
