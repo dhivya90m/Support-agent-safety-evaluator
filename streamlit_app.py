@@ -305,6 +305,8 @@ st.markdown(
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    [data-testid="stHeaderActionElements"] {display: none !important;}
+    h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {display: none !important;}
     .block-container {max-width:100% !important; padding-left:3rem !important; padding-right:3rem !important; padding-top:2.2rem !important;}
     .stButton > button[kind="primary"], button[data-testid="stBaseButton-primary"] {
         color:#0C0F0E !important; font-weight:800 !important; letter-spacing:0.02em;}
