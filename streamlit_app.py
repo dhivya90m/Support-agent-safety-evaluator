@@ -265,9 +265,16 @@ st.markdown(
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    .block-container {max-width:100% !important; padding-left:3rem !important; padding-right:3rem !important; padding-top:2.2rem !important;}
+    .stButton > button[kind="primary"], button[data-testid="stBaseButton-primary"] {
+        color:#0C0F0E !important; font-weight:800 !important; letter-spacing:0.02em;}
+    .stButton > button[kind="primary"]:hover, button[data-testid="stBaseButton-primary"]:hover {
+        color:#0C0F0E !important;}
+    .stButton > button[kind="primary"] p, button[data-testid="stBaseButton-primary"] p {
+        color:#0C0F0E !important; font-weight:800 !important;}
     .eyebrow {color:#C8F169; font-size:0.8rem; font-weight:700; letter-spacing:0.22em; margin-bottom:0.4rem;}
     .hero-title {font-size:2.6rem; font-weight:800; line-height:1.12; margin:0 0 0.6rem 0;}
-    .hero-sub {font-size:1.08rem; color:#C9D1C0; max-width:52rem; line-height:1.55;}
+    .hero-sub {font-size:1.08rem; color:#C9D1C0; line-height:1.55;}
     .card {background:#161B19; border:1px solid #2A332C; border-top:3px solid #C8F169;
            border-radius:10px; padding:1rem 1.1rem; height:100%;}
     .card h4 {margin:0 0 0.35rem 0; font-size:1.02rem;}
