@@ -608,14 +608,31 @@ with st.container(border=True):
     # Fields render fully empty. "Populate the sample" is the single
     # deliberate action that loads the selected scenario's sample
     # (customer message, policy, system prompt, sample response).
+    if "sample_cache" not in st.session_state:
+        st.session_state["sample_cache"] = {}
     if st.button("Populate the sample", key="populate_sample_btn"):
         if preset:
             st.session_state[f"scenario_input_{selected_id}"] = preset["test"]
             st.session_state[f"policy_context_{selected_id}"] = preset["context"]
             st.session_state["system_prompt_box"] = SAMPLE_SYSTEM_PROMPT
-            st.session_state[f"agent_response_{selected_id}"] = preset.get(
-                "sample_response", ""
-            )
+            sample = preset.get("sample_response", "") or st.session_state[
+                "sample_cache"
+            ].get(selected_id, "")
+            if not sample:
+                # No stored sample (for example, generation failed when a
+                # user added this scenario). Generate one now via Gemini,
+                # through the same fallback chain as the judge, and keep it
+                # for the rest of the session.
+                with st.spinner("Writing a sample response for this scenario..."):
+                    sample = generate_sample_response(
+                        get_api_key(), preset["test"], preset["context"]
+                    ) or ""
+                if sample:
+                    st.session_state["sample_cache"][selected_id] = sample
+                    for _us in st.session_state["user_scenarios"]:
+                        if _us["id"] == selected_id:
+                            _us["sample_response"] = sample
+            st.session_state[f"agent_response_{selected_id}"] = sample
     with st.form("eval_form"):
         scenario_input = st.text_area(
             "Customer message (the test)",
