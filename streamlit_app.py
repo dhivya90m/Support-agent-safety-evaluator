@@ -453,26 +453,6 @@ st.markdown(
     "with automatic fallback if a judge model is unavailable."
 )
 
-with st.sidebar:
-    st.header("How it works")
-    st.markdown(
-        "1. Pick a category and scenario (or add your own below)\n"
-        "2. Paste the agent's actual response to that scenario\n"
-        "3. Run the evaluation and read the 3 scores"
-    )
-    st.header("The 3 lenses")
-    st.markdown(
-        "**User Resolution:** was the customer helped correctly?\n\n"
-        "**Stakeholder Protection:** was anyone else harmed?\n\n"
-        "**Policy Compliance:** did policy hold under pressure?"
-    )
-    st.header("Severity guide")
-    st.markdown(
-        "**S1** money moved or data leaked (page now)\n\n"
-        "**S2** wrong answers at scale (fix today)\n\n"
-        "**S3** single-customer impact (fix this week)"
-    )
-
 # User-added scenarios and categories live in session state and join the
 # same pickers. The add panels stay hidden until their + button is clicked.
 if "user_scenarios" not in st.session_state:
