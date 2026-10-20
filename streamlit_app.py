@@ -396,112 +396,165 @@ with st.sidebar:
         "**S3** single-customer impact (fix this week)"
     )
 
-# User-added scenarios live in session state and join the same pickers.
+# User-added scenarios and categories live in session state and join the
+# same pickers. The add panels stay hidden until their + button is clicked.
 if "user_scenarios" not in st.session_state:
     st.session_state["user_scenarios"] = []
+if "user_categories" not in st.session_state:
+    st.session_state["user_categories"] = []
 
-# A scenario added in the panel below asks to be selected on the next run;
+# An item added in a panel below asks to be selected on the next run;
 # apply that request here, before the pickers are created.
 if "pending_cat" in st.session_state:
     st.session_state["cat_pick"] = st.session_state.pop("pending_cat")
 if "pending_scn" in st.session_state:
     st.session_state["scn_pick"] = st.session_state.pop("pending_scn")
+if "flash" in st.session_state:
+    st.success(st.session_state.pop("flash"))
 
+all_categories = CATEGORIES + st.session_state["user_categories"]
 all_scenarios = SCENARIOS + st.session_state["user_scenarios"]
+by_id = {s["id"]: s for s in all_scenarios}
 
-selected_category = st.selectbox("Category", options=CATEGORIES, key="cat_pick")
+cat_col, cat_btn_col = st.columns([5, 1])
+selected_category = cat_col.selectbox("Category", options=all_categories, key="cat_pick")
+with cat_btn_col:
+    st.markdown("<div style='height:1.55rem'></div>", unsafe_allow_html=True)
+    if st.button("+ Category", key="add_cat_toggle"):
+        st.session_state["show_add_cat"] = not st.session_state.get("show_add_cat", False)
+        st.session_state["show_add_scn"] = False
 
 in_category = [s for s in all_scenarios if s["category"] == selected_category]
 scenario_ids = [s["id"] for s in in_category]
-if st.session_state.get("scn_pick") not in scenario_ids:
-    st.session_state["scn_pick"] = scenario_ids[0]
 
-by_id = {s["id"]: s for s in all_scenarios}
-selected_id = st.selectbox(
-    "Scenario",
-    options=scenario_ids,
-    key="scn_pick",
-    format_func=lambda i: f"{by_id[i]['name']} ({by_id[i]['severity']})",
-)
+scn_col, scn_btn_col = st.columns([5, 1])
+preset = None
+selected_id = None
+if scenario_ids:
+    if st.session_state.get("scn_pick") not in scenario_ids:
+        st.session_state["scn_pick"] = scenario_ids[0]
+    selected_id = scn_col.selectbox(
+        "Scenario",
+        options=scenario_ids,
+        key="scn_pick",
+        format_func=lambda i: f"{by_id[i]['name']} ({by_id[i]['severity']})",
+    )
+    preset = by_id[selected_id]
+else:
+    scn_col.info("No scenarios in this category yet. Add the first one with + Scenario.")
+with scn_btn_col:
+    st.markdown("<div style='height:1.55rem'></div>", unsafe_allow_html=True)
+    if st.button("+ Scenario", key="add_scn_toggle"):
+        st.session_state["show_add_scn"] = not st.session_state.get("show_add_scn", False)
+        st.session_state["show_add_cat"] = False
 
-preset = by_id[selected_id]
+# --- Add category panel (only when + Category was clicked) ---
+if st.session_state.get("show_add_cat"):
+    with st.container(border=True):
+        st.markdown("**Add a category**")
+        new_cat_name = st.text_input(
+            "Category name", key="new_cat_name",
+            placeholder="e.g. Billing Disputes",
+        )
+        if st.button("Add category", key="add_cat_btn"):
+            name = new_cat_name.strip()
+            if not name:
+                st.warning("Give the category a name.")
+            elif name in all_categories:
+                st.warning("That category already exists.")
+            else:
+                st.session_state["user_categories"].append(name)
+                st.session_state["pending_cat"] = name
+                st.session_state["show_add_cat"] = False
+                st.session_state["show_add_scn"] = True
+                st.session_state["flash"] = (
+                    f"Category '{name}' added. Now add its first scenario."
+                )
+                st.rerun()
+
+# --- Add scenario panel (only when + Scenario was clicked) ---
+if st.session_state.get("show_add_scn"):
+    with st.container(border=True):
+        st.markdown("**Add your own scenario**")
+        st.markdown(
+            "Bring a failure you have actually seen. It joins the pickers "
+            "above and runs through the same 3-lens evaluation. Added "
+            "scenarios and categories are kept for this session."
+        )
+        new_name = st.text_input(
+            "Scenario name",
+            placeholder="e.g. Customer pastes a fake refund confirmation email",
+            key="new_name",
+        )
+        acol1, acol2 = st.columns(2)
+        new_category = acol1.selectbox(
+            "Category", options=all_categories, key="new_cat",
+        )
+        new_severity = acol2.selectbox(
+            "Severity", options=["S1", "S2", "S3"], key="new_sev",
+        )
+        new_test = st.text_area(
+            "Customer message", placeholder="The exact message the customer sends...",
+            key="new_test", height=80,
+        )
+        new_context = st.text_area(
+            "Policy context",
+            placeholder="The policy the agent should follow in this situation...",
+            key="new_context", height=80,
+        )
+        if st.button("Add scenario", key="add_scenario_btn"):
+            if new_name.strip() and new_test.strip() and new_context.strip():
+                new_id = f"U{len(st.session_state['user_scenarios']) + 1}"
+                st.session_state["user_scenarios"].append({
+                    "id": new_id,
+                    "category": new_category,
+                    "name": new_name.strip(),
+                    "test": new_test.strip(),
+                    "context": new_context.strip(),
+                    "severity": new_severity,
+                })
+                st.session_state["pending_cat"] = new_category
+                st.session_state["pending_scn"] = new_id
+                st.session_state["show_add_scn"] = False
+                st.session_state["flash"] = (
+                    f"Scenario added under {new_category} and selected above."
+                )
+                st.rerun()
+            else:
+                st.warning(
+                    "Give the scenario a name, a customer message, and a policy context."
+                )
 
 with st.container(border=True):
-    # The scenario selectbox stays OUTSIDE the form on purpose: form fields
+    # The pickers stay OUTSIDE the form on purpose: form fields
     # only update on submit, which would stop the preset from auto-filling
     # the customer message and policy when the scenario changes.
     with st.form("eval_form"):
-        icol1, icol2 = st.columns(2)
-        with icol1:
-            scenario_input = st.text_area(
-                "Customer message (the test)",
-                value=preset["test"] if preset else "",
-                key=f"scenario_input_{selected_id}",
-                height=110,
-            )
-            policy_context = st.text_area(
-                "Policy context (what the agent should follow)",
-                value=preset["context"] if preset else "",
-                key=f"policy_context_{selected_id}",
-                height=110,
-            )
-        with icol2:
-            system_prompt = st.text_area(
-                "Agent system prompt (optional, for context)",
-                placeholder="Paste the system prompt the agent was running...",
-                height=110,
-            )
-            agent_response = st.text_area(
-                "Agent response to evaluate",
-                placeholder="Paste the agent's actual response to the scenario above...",
-                height=110,
-            )
+        scenario_input = st.text_area(
+            "Customer message (the test)",
+            value=preset["test"] if preset else "",
+            key=f"scenario_input_{selected_id}",
+            height=90,
+        )
+        policy_context = st.text_area(
+            "Policy context (what the agent should follow)",
+            value=preset["context"] if preset else "",
+            key=f"policy_context_{selected_id}",
+            height=90,
+        )
+        system_prompt = st.text_area(
+            "Agent system prompt (optional, for context)",
+            placeholder="Paste the system prompt the agent was running...",
+            height=100,
+        )
+        agent_response = st.text_area(
+            "Agent response to evaluate",
+            placeholder="Paste the agent's actual response to the scenario above...",
+            height=110,
+        )
         submitted = st.form_submit_button(
             "Get 3-Lens Scorecard", type="primary", width="stretch"
         )
-
-with st.expander("Add your own scenario"):
-    st.markdown(
-        "Bring a failure you have actually seen. Your scenario joins the "
-        "Category and Scenario pickers above and runs through the same "
-        "3-lens evaluation. Added scenarios are kept for this session."
-    )
-    new_name = st.text_input(
-        "Scenario name",
-        placeholder="e.g. Customer pastes a fake refund confirmation email",
-        key="new_name",
-    )
-    acol1, acol2 = st.columns(2)
-    new_category = acol1.selectbox("Category", options=CATEGORIES, key="new_cat")
-    new_severity = acol2.selectbox("Severity", options=["S1", "S2", "S3"], key="new_sev")
-    new_test = st.text_area(
-        "Customer message", placeholder="The exact message the customer sends...",
-        key="new_test", height=80,
-    )
-    new_context = st.text_area(
-        "Policy context",
-        placeholder="The policy the agent should follow in this situation...",
-        key="new_context", height=80,
-    )
-    if st.button("Add scenario", key="add_scenario_btn"):
-        if new_name.strip() and new_test.strip() and new_context.strip():
-            new_id = f"U{len(st.session_state['user_scenarios']) + 1}"
-            st.session_state["user_scenarios"].append({
-                "id": new_id,
-                "category": new_category,
-                "name": new_name.strip(),
-                "test": new_test.strip(),
-                "context": new_context.strip(),
-                "severity": new_severity,
-            })
-            st.session_state["pending_cat"] = new_category
-            st.session_state["pending_scn"] = new_id
-            st.success(
-                f"Added under {new_category}. It is now selected above, "
-                "ready to run."
-            )
-        else:
-            st.warning("Give the scenario a name, a customer message, and a policy context.")
 
 if submitted:
     api_key = get_api_key()

@@ -23,7 +23,7 @@ tool is built to catch all three.
 
 ## What It Does
 
-1. Select a failure category, then one of 15 built-in scenarios, or add your own scenario with your customer message and policy.
+1. Select a failure category, then one of 15 built-in scenarios, or add your own scenario or category with your customer message and policy.
 2. Paste the agent's actual response to that scenario.
 3. Receive a PASS / FAIL verdict, a score, and the judge's reasoning for
    each of the three lenses. Pass threshold: 0.7.
@@ -110,6 +110,42 @@ hosted). It is never stored in the code or the repository.
 - Evaluations are single-turn. Multi-turn manipulation that builds across a
   conversation is out of scope for this version.
 - The 15 built-in scenarios are a curated starting set, not an exhaustive catalogue. Scenarios a user adds in the app last for that session only.
+
+## Scaling This in an Enterprise
+
+This app is the single-case, by-hand version of a pattern that runs very
+differently at company scale. The lenses, severity model, and scenario bank
+carry over unchanged. What changes is the plumbing:
+
+- **Where it runs:** Inside company infrastructure, not on a public page.
+  The evaluator ships as a containerized service or scheduled batch job on
+  the company's cloud, behind SSO, with the judge model called through the
+  company's own cloud account (for example Vertex AI or Bedrock) so
+  conversation data never leaves the compliance boundary.
+- **How the CRM connects:** CRMs are the data source, in 3 ways. Their APIs
+  (Zendesk, Intercom, Salesforce) pull conversations directly; a warehouse
+  sync (Fivetran or native export into Snowflake or BigQuery) feeds nightly
+  batch runs; or webhooks push each closed conversation to the evaluator in
+  near real time. There is no magic plugin. Integration is an API and data
+  pipeline job, which is exactly how the commercial QA platforms that score
+  100% of conversations are built.
+- **Finding past misses:** The same engine runs retrospectively over
+  exported or warehouse history. That is how a team answers questions like
+  "how many chats last quarter disclosed data before verification?" with
+  counts and examples instead of anecdotes.
+- **Sampling is the discipline:** 100 chats is 300 judge calls, so scoring
+  everything is a cost and latency decision, not a default. Production
+  setups typically score 100% of high-risk categories (PII, money movement,
+  legal threats) and a statistical sample of the rest, with the sample rate
+  raised after any prompt, model, or policy change.
+- **Results go back to work:** Scores write back as ticket tags or internal
+  notes in the CRM, S1 patterns alert the on-call channel, and failure
+  counts by category land on the QA dashboard the weekly quality review
+  already uses.
+- **Calibration closes the loop:** Human reviewers re-score a slice of
+  judge decisions every week. Where the judge and the humans disagree, the
+  scenario bank and the metric criteria are what get fixed. The bank itself
+  is versioned in Git, so every change to what "good" means is reviewable.
 
 ## Sources
 
