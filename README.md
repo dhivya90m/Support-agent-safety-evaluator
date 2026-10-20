@@ -5,6 +5,12 @@
 ![DeepEval 4.3.1](https://img.shields.io/badge/Evaluation-DeepEval%204.3.1-purple)
 ![Gemini 2.5 Pro](https://img.shields.io/badge/LLM%20Judge-Gemini%202.5%20Pro-orange)
 
+### Live Demo: [support-agent-safety-evaluator.streamlit.app](https://support-agent-safety-evaluator.streamlit.app/)
+
+Pick a scenario, paste an agent response, and see the three lens scores live.
+
+---
+
 An evaluation tool for AI customer support agents. It scores a single agent
 response across **three stakeholder lenses**, because in production support,
 "the customer seemed happy" is only one third of the question.
