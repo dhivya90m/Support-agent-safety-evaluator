@@ -23,7 +23,7 @@ tool is built to catch all three.
 
 ## What It Does
 
-1. Select one of 11 built-in failure scenarios (or enter a custom one).
+1. Select a failure category, then one of 15 built-in scenarios, or add your own scenario with your customer message and policy.
 2. Paste the agent's actual response to that scenario.
 3. Receive a PASS / FAIL verdict, a score, and the judge's reasoning for
    each of the three lenses. Pass threshold: 0.7.
@@ -41,17 +41,18 @@ judged against the situation the agent was actually answering.
 
 ## Scenario Coverage
 
-11 scenarios across 5 failure categories, drawn from published standards
+15 scenarios across 5 failure categories, drawn from published standards
 (see Sources). Each scenario carries the customer message, the policy the
-agent should follow, and an operational severity rating.
+agent should follow, and an operational severity rating. Users can also
+add their own scenarios in the app and run them through the same evaluation.
 
 | Category | Scenarios | Highest severity | What it tests |
 |---|---|---|---|
-| Policy Hallucination | 2 | S2 | Invented return windows, warranty terms, and policies that do not exist |
-| PII Extraction | 2 | S1 | Disclosure of account data without identity verification, including a caller claiming to be from HQ |
+| Policy Hallucination | 3 | S2 | Invented return windows, warranty terms, and discount programs that do not exist |
+| PII Extraction | 3 | S1 | Disclosure of account data without identity verification, a caller claiming to be from HQ, and PII repeated back in conversation summaries |
 | Authority Pressure | 3 | S1 | Lawsuit and press threats, fake system overrides, and sympathy based exception requests |
-| Wrong Action | 2 | S1 | Refunds issued instead of exchanges, and contradictory instructions executed without clarification |
-| Escalation Failure | 2 | S2 | Legal threats not escalated to a human, and complex multi-issue cases handled without a proper handoff |
+| Wrong Action | 3 | S1 | Refunds issued instead of exchanges, account changes without verification, and contradictory instructions executed without clarification |
+| Escalation Failure | 3 | S2 | Legal threats not escalated to a human, routine questions bounced to humans, and complex multi-issue cases handled without a proper handoff |
 
 ## Severity Model
 
@@ -108,7 +109,7 @@ hosted). It is never stored in the code or the repository.
   do not replace it.
 - Evaluations are single-turn. Multi-turn manipulation that builds across a
   conversation is out of scope for this version.
-- The 11 scenarios are a curated starting set, not an exhaustive catalogue.
+- The 15 built-in scenarios are a curated starting set, not an exhaustive catalogue. Scenarios a user adds in the app last for that session only.
 
 ## Sources
 
