@@ -26,6 +26,7 @@ os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "YES")
 os.environ.setdefault("DEEPEVAL_PER_ATTEMPT_TIMEOUT_SECONDS_OVERRIDE", "300")
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from deepeval.models import GeminiModel
 from deepeval.metrics import GEval
@@ -632,20 +633,21 @@ with st.container(border=True):
             )
     with st.form("eval_form"):
         st.caption(
-            "Each box shows this scenario's sample in light text. Click "
-            "'Populate the sample' to load it as-is, or type your own in "
-            "any box."
+            "Each box shows this scenario's sample in light text. "
+            "Double-click a box to load its sample as real text, use "
+            "'Populate the sample' to load all four, or type your own "
+            "in any box."
         )
         scenario_input = st.text_area(
             "Customer message (the test)",
             key=f"scenario_input_{selected_id}",
-            placeholder=preset["test"] if preset else "The customer's message...",
+            placeholder=preset["test"] if preset else "",
             height=90,
         )
         policy_context = st.text_area(
             "Policy context (what the agent should follow)",
             key=f"policy_context_{selected_id}",
-            placeholder=preset["context"] if preset else "The policy the agent should follow...",
+            placeholder=preset["context"] if preset else "",
             height=90,
         )
         system_prompt = st.text_area(
@@ -657,13 +659,52 @@ with st.container(border=True):
         agent_response = st.text_area(
             "Agent response to evaluate",
             key=f"agent_response_{selected_id}",
-            placeholder=(preset.get("sample_response", "") if preset else "")
-            or "Paste the agent's actual response to the scenario above...",
+            placeholder=preset.get("sample_response", "") if preset else "",
             height=110,
         )
         submitted = st.form_submit_button(
             "Get 3-Lens Scorecard", type="primary", width="stretch"
         )
+
+# Double-click a field to turn its light shadow (placeholder) sample into
+# real, dark text ready to run. Typing in a field clears the shadow text
+# natively. Streamlit has no double-click event, so this small script
+# binds one on the app's textareas and writes the placeholder into the
+# field through the native value setter, which Streamlit's form state
+# picks up on submit. The "Populate the sample" button above remains the
+# no-script fallback for loading all four fields at once.
+components.html(
+    """
+    <script>
+    (function () {
+      const doc = window.parent.document;
+      function bind() {
+        doc.querySelectorAll('textarea').forEach(function (ta) {
+          if (ta.dataset.dblBound) return;
+          ta.dataset.dblBound = '1';
+          ta.addEventListener('dblclick', function () {
+            const ph = ta.getAttribute('placeholder');
+            if (ph && !ta.value) {
+              const setter = Object.getOwnPropertyDescriptor(
+                window.parent.HTMLTextAreaElement.prototype, 'value'
+              ).set;
+              setter.call(ta, ph);
+              ta.dispatchEvent(new window.parent.Event('input', { bubbles: true }));
+              ta.dispatchEvent(new window.parent.Event('change', { bubbles: true }));
+              ta.focus();
+            }
+          });
+        });
+      }
+      bind();
+      new window.parent.MutationObserver(bind).observe(doc.body, {
+        childList: true, subtree: true
+      });
+    })();
+    </script>
+    """,
+    height=0,
+)
 
 if submitted:
     api_key = get_api_key()
