@@ -357,7 +357,13 @@ st.markdown(
         color:#0C0F0E !important;}
     .stButton > button[kind="primary"] p, button[data-testid="stBaseButton-primary"] p {
         color:#0C0F0E !important; font-weight:800 !important;}
-    .eyebrow {color:#C8F169; font-size:0.8rem; font-weight:700; letter-spacing:0.22em; margin-bottom:0.4rem;}
+    .eyebrow {color:#C8F169; font-size:0.88rem; font-weight:700; letter-spacing:0.22em; line-height:1.8; padding-top:0.3rem; margin-bottom:0.5rem; display:block;}
+    @media (max-width: 640px) {
+        .hero-title {font-size:2.05rem !important; line-height:1.18 !important;}
+        .hero-sub {font-size:1rem !important;}
+        .eyebrow {font-size:0.82rem;}
+        .block-container {padding-left:1.2rem !important; padding-right:1.2rem !important;}
+    }
     .hero-title {font-size:2.6rem; font-weight:800; line-height:1.12; margin:0 0 0.6rem 0;}
     .hero-sub {font-size:1.08rem; color:#C9D1C0; line-height:1.55;}
     .card {background:#161B19; border:1px solid #2A332C; border-top:3px solid #C8F169;
