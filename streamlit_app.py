@@ -242,7 +242,7 @@ def is_availability_error(exc):
     return any(m in text for m in markers)
 
 
-def run_evaluation(api_key, scenario_input, policy_context, system_prompt, agent_response):
+def run_evaluation(api_key, scenario_input, policy_context, system_prompt, agent_response, on_step=None):
     test_case = LLMTestCase(
         input=scenario_input,
         actual_output=agent_response,
@@ -255,6 +255,8 @@ def run_evaluation(api_key, scenario_input, policy_context, system_prompt, agent
     candidates = get_judge_candidates()
     results = []
     for name in METRIC_SPECS:
+        if on_step is not None:
+            on_step(name)
         last_error = None
         used_model = None
         metric = None
@@ -373,6 +375,22 @@ st.markdown(
     .judge-tag {color:#8A947F; font-size:0.78rem; font-family:monospace;}
     div[data-testid="stFormSubmitButton"] > button {color:#0C0F0E !important; font-weight:800 !important;}
     div[data-testid="stFormSubmitButton"] > button p {color:#0C0F0E !important; font-weight:800 !important;}
+    /* Staggered entrance: sections rise and fade in one after another.
+       fill-mode backwards applies the start state only during the delay,
+       so hover transforms still work after the animation finishes. */
+    @keyframes rise {from {opacity:0; transform:translateY(16px);} to {opacity:1; transform:translateY(0);}}
+    .eyebrow {animation:rise .6s ease backwards;}
+    .hero-title {animation:rise .7s ease .12s backwards;}
+    .hero-sub {animation:rise .7s ease .24s backwards;}
+    .section-label {animation:rise .6s ease .3s backwards;}
+    .flow {animation:rise .7s ease .38s backwards;}
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        animation:rise .7s ease .45s backwards;
+        transition:transform .25s ease, box-shadow .25s ease;}
+    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+        transform:translateY(-3px); box-shadow:0 10px 24px rgba(0,0,0,0.5);}
+    button[kind="primary"] {transition:all .2s ease;}
+    button[kind="primary"]:hover {filter:brightness(1.08); transform:translateY(-1px);}
     </style>
     """,
     unsafe_allow_html=True,
@@ -643,10 +661,15 @@ if submitted:
     elif not agent_response.strip():
         st.warning("Paste the agent's response to evaluate.")
     else:
-        with st.spinner("Running 3 judge evaluations..."):
+        with st.status("Running evaluation...", expanded=True) as status:
+            def _step(lens_name):
+                status.write(f"Judging {lens_name}...")
+
             results = run_evaluation(
-                api_key, scenario_input, policy_context, system_prompt, agent_response
+                api_key, scenario_input, policy_context, system_prompt, agent_response,
+                on_step=_step,
             )
+            status.update(label="Evaluation complete", state="complete", expanded=False)
         passed = sum(1 for r in results if r["status"] == "PASS")
         st.markdown(f"### Result: {passed} of {len(results)} checks passed")
         for r in results:
