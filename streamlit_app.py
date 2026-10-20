@@ -347,7 +347,7 @@ st.markdown(
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     [data-testid="stHeaderActionElements"] {display: none !important;}
-    [data-testid="InputInstructions"] {display: none !important;}
+    [data-testid="InputInstructions"] {display: none !important; visibility: hidden !important; height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important;}
     h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {display: none !important;}
     .block-container {max-width:100% !important; padding-left:3rem !important; padding-right:3rem !important; padding-top:2.2rem !important;}
     .stButton > button[kind="primary"], button[data-testid="stBaseButton-primary"] {
