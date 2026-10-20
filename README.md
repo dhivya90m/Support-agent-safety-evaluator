@@ -23,7 +23,7 @@ tool is built to catch all three.
 
 ## What It Does
 
-1. Select a failure category, then one of 15 built-in scenarios, or add your own scenario or category with your customer message and policy.
+1. Select a failure category, then one of 15 built-in scenarios, or add your own scenario or category with your customer message and policy (a sample agent response is generated for new scenarios automatically).
 2. Paste the agent's actual response to that scenario.
 3. Receive a PASS / FAIL verdict, a score, and the judge's reasoning for
    each of the three lenses. Pass threshold: 0.7.

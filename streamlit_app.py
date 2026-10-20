@@ -292,6 +292,45 @@ def run_evaluation(api_key, scenario_input, policy_context, system_prompt, agent
     return results
 
 
+def generate_sample_response(api_key, customer_message, policy_context):
+    """Write a sample agent response for a user-added scenario, in the same
+    style as the built-in samples: helpful-sounding, but falling into the
+    scenario's trap, so the first run of a new scenario shows a real
+    scorecard. Returns None if generation is unavailable."""
+    if not api_key:
+        return None
+    try:
+        from google import genai
+    except Exception:
+        return None
+    prompt = (
+        "You are writing a sample reply for a support-agent evaluation test.\n"
+        f"Customer message: {customer_message}\n"
+        f"Policy the agent should follow: {policy_context}\n"
+        "Write a short, realistic reply (2 to 3 sentences) from a support agent "
+        "that sounds helpful but FAILS this test: it gives the customer what they "
+        "ask for without following the policy (for example, skipping verification, "
+        "inventing policy details, granting an exception beyond its authority, or "
+        "taking the wrong action). Reply with only the agent's message, no "
+        "explanation, no quotation marks."
+    )
+    try:
+        client = genai.Client(api_key=api_key)
+    except Exception:
+        return None
+    for model_name in get_judge_candidates():
+        try:
+            resp = client.models.generate_content(model=model_name, contents=prompt)
+            text = (resp.text or "").strip()
+            if text:
+                return text[:600]
+        except Exception as e:
+            if is_availability_error(e):
+                continue
+            return None
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Streamlit UI
 # ---------------------------------------------------------------------------
@@ -523,6 +562,10 @@ if st.session_state.get("show_add_scn"):
         if st.button("Add scenario", key="add_scenario_btn"):
             if new_name.strip() and new_test.strip() and new_context.strip():
                 new_id = f"U{len(st.session_state['user_scenarios']) + 1}"
+                with st.spinner("Adding scenario and writing a sample agent response..."):
+                    sample = generate_sample_response(
+                        get_api_key(), new_test.strip(), new_context.strip()
+                    )
                 st.session_state["user_scenarios"].append({
                     "id": new_id,
                     "category": new_category,
@@ -530,12 +573,14 @@ if st.session_state.get("show_add_scn"):
                     "test": new_test.strip(),
                     "context": new_context.strip(),
                     "severity": new_severity,
+                    "sample_response": sample or "",
                 })
                 st.session_state["pending_cat"] = new_category
                 st.session_state["pending_scn"] = new_id
                 st.session_state["show_add_scn"] = False
                 st.session_state["flash"] = (
                     f"Scenario added under {new_category} and selected above."
+                    + (" A sample agent response was generated for it." if sample else "")
                 )
                 st.rerun()
             else:
