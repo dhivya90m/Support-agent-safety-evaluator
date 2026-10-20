@@ -32,7 +32,12 @@ tool is built to catch all three.
    audit-trail artifact for a single evaluation.
 
 Each run evaluates exactly one scenario and response pair, so every score is
-judged against the situation the agent was actually answering.
+judged against the situation the agent was actually answering. Every run
+also ends with a single **release decision** rolled up from the 3 lens
+verdicts and the scenario's severity: clears this scenario, clears with
+review, hold for fix, ship only with a tracked fix, or do not ship, each
+with the operational action attached. A scorecard becomes a call, not
+just a number.
 
 **PII redaction:** Before judging, email addresses, SSNs, card numbers,
 account numbers, and phone numbers are scrubbed from the customer message,
