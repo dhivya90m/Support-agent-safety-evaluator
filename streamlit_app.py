@@ -26,7 +26,6 @@ os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "YES")
 os.environ.setdefault("DEEPEVAL_PER_ATTEMPT_TIMEOUT_SECONDS_OVERRIDE", "300")
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 from deepeval.models import GeminiModel
 from deepeval.metrics import GEval
@@ -606,9 +605,9 @@ with st.container(border=True):
     # The pickers stay OUTSIDE the form on purpose: form fields
     # only update on submit, which would stop the preset from auto-filling
     # the customer message and policy when the scenario changes.
-    # Fields render EMPTY with the sample as light shadow (placeholder)
-    # text, so the page feels fresh. "Populate the sample" turns the
-    # shadow text into real field values in one click.
+    # Fields render fully empty. "Populate the sample" is the single
+    # deliberate action that loads the selected scenario's sample
+    # (customer message, policy, system prompt, sample response).
     if st.button("Populate the sample", key="populate_sample_btn"):
         if preset:
             st.session_state[f"scenario_input_{selected_id}"] = preset["test"]
@@ -618,79 +617,33 @@ with st.container(border=True):
                 "sample_response", ""
             )
     with st.form("eval_form"):
-        st.caption(
-            "Each box shows this scenario's sample in light text. "
-            "Double-click a box to load its sample as real text, use "
-            "'Populate the sample' to load all four, or type your own "
-            "in any box."
-        )
         scenario_input = st.text_area(
             "Customer message (the test)",
             key=f"scenario_input_{selected_id}",
-            placeholder=preset["test"] if preset else "",
+            placeholder="",
             height=90,
         )
         policy_context = st.text_area(
             "Policy context (what the agent should follow)",
             key=f"policy_context_{selected_id}",
-            placeholder=preset["context"] if preset else "",
+            placeholder="",
             height=90,
         )
         system_prompt = st.text_area(
             "Agent system prompt (optional, for context)",
             key="system_prompt_box",
-            placeholder=SAMPLE_SYSTEM_PROMPT,
+            placeholder="",
             height=100,
         )
         agent_response = st.text_area(
             "Agent response to evaluate",
             key=f"agent_response_{selected_id}",
-            placeholder=preset.get("sample_response", "") if preset else "",
+            placeholder="",
             height=110,
         )
         submitted = st.form_submit_button(
             "Get 3-Lens Scorecard", type="primary", width="stretch"
         )
-
-# Double-click a field to turn its light shadow (placeholder) sample into
-# real, dark text ready to run. Typing in a field clears the shadow text
-# natively. Streamlit has no double-click event, so this small script
-# binds one on the app's textareas and writes the placeholder into the
-# field through the native value setter, which Streamlit's form state
-# picks up on submit. The "Populate the sample" button above remains the
-# no-script fallback for loading all four fields at once.
-components.html(
-    """
-    <script>
-    (function () {
-      const doc = window.parent.document;
-      function bind() {
-        doc.querySelectorAll('textarea').forEach(function (ta) {
-          if (ta.dataset.dblBound) return;
-          ta.dataset.dblBound = '1';
-          ta.addEventListener('dblclick', function () {
-            const ph = ta.getAttribute('placeholder');
-            if (ph && !ta.value) {
-              const setter = Object.getOwnPropertyDescriptor(
-                window.parent.HTMLTextAreaElement.prototype, 'value'
-              ).set;
-              setter.call(ta, ph);
-              ta.dispatchEvent(new window.parent.Event('input', { bubbles: true }));
-              ta.dispatchEvent(new window.parent.Event('change', { bubbles: true }));
-              ta.focus();
-            }
-          });
-        });
-      }
-      bind();
-      new window.parent.MutationObserver(bind).observe(doc.body, {
-        childList: true, subtree: true
-      });
-    })();
-    </script>
-    """,
-    height=0,
-)
 
 if submitted:
     api_key = get_api_key()
