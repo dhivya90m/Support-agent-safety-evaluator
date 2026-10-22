@@ -100,7 +100,9 @@ For testing more than one response at a time (for example, a CRM export of past 
 ## Agents
 
 Three agents share the judge's Gemini fallback chain. None of them is
-autonomous: a human reviews every output before it is used.
+autonomous: a human reviews every output before it is used. They live
+where they are used, not in a separate tab: scenario generation on the
+Scenarios view, fix drafting and the debate panel on Evaluate after a run.
 
 - **Scenario-generation agent.** Paste a company policy document and the
   agent drafts failure scenarios grounded in it (1 to 3 at a time). A
@@ -120,7 +122,8 @@ autonomous: a human reviews every output before it is used.
   Business Protector, and Policy Enforcer. Each states a verdict, rebuts
   the other two, and a moderator synthesizes a verdict with dissent
   noted. Cost: 7 agent calls per contested lens. Advisory only; a split
-  panel routes to a human.
+  panel routes to a human. The panel is asynchronous root-cause analysis
+  for contested calls, not part of the release-decision path.
 
 ## How It Works
 

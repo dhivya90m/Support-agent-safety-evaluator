@@ -876,8 +876,8 @@ st.markdown(
     '<div style="font-weight:800;font-size:22px">Tria</div>',
     unsafe_allow_html=True,
 )
-_nav_cols = st.columns(5)
-for _nav_i, _nav_label in enumerate(["Home", "Evaluate", "Scenarios", "Agents", "Tools"]):
+_nav_cols = st.columns(4)
+for _nav_i, _nav_label in enumerate(["Home", "Evaluate", "Scenarios", "Tools"]):
     with _nav_cols[_nav_i]:
         if st.button(
             _nav_label,
@@ -1166,7 +1166,7 @@ if _view == "Home":
                 "grounding. Why: your worst cases are hiding in your policy doc."
             )
             if st.button("Try it: paste a policy, find a new failure", key="home_card_agents"):
-                st.session_state["nav_view"] = "Agents"
+                st.session_state["nav_view"] = "Scenarios"
                 st.rerun()
     with _hc2:
         with st.container(border=True):
@@ -1199,17 +1199,16 @@ if _view == "Home":
                 "verdicts. Why: one reply proves nothing, and a judge you "
                 "cannot grade is just another opinion."
             )
-            if st.button("Try it: 30/30 agreement, 0 false passes", key="home_card_tools"):
+            if st.button("Try it: grade the judge against human verdicts", key="home_card_tools"):
                 st.session_state["nav_view"] = "Tools"
                 st.rerun()
     st.caption(
         "Also inside: scenario bank (add your own), human review ledger, "
         "PII redaction on by default, downloadable reports."
     )
-    st.markdown("### Calibrated, not just claimed")
     st.write(
-        "On the Quick suite (first 10 cases), the judge matched every "
-        "human verdict, 30/30, and never passed a trap reply."
+        "The judge is graded against human verdicts. Calibration runs "
+        "and the review ledger live in Tools."
     )
     if st.button("Paste your worst reply. See if it ships.", key="home_go_evaluate2"):
         st.session_state["nav_view"] = "Evaluate"
@@ -1337,7 +1336,8 @@ elif _view == "Evaluate":
             )
             st.caption(
                 "The agent response is scored exactly as written, so a "
-                "disclosure inside it is still caught."
+                "disclosure inside it is still caught. Built-in scenarios "
+                "use synthetic data; redaction protects anything you paste."
             )
             submitted = st.form_submit_button(
                 "Get 3-Lens Scorecard", type="primary", width="stretch"
@@ -1487,6 +1487,11 @@ elif _view == "Evaluate":
             if (lambda b: b and "BORDERLINE" in b)(decision_band(r["status"], r["score"]))
         ]
         st.markdown("### Debate panel")
+        st.caption(
+            "Asynchronous root-cause analysis for contested calls. Advisory "
+            "only and off the release-decision path; a split panel routes to "
+            "a human."
+        )
         if not _debatable:
             st.caption(
                 "The debate panel needs scored lenses. This run has none: "
@@ -1686,14 +1691,11 @@ elif _view == "Scenarios":
                     st.session_state["nav_view"] = "Evaluate"
                     st.rerun()
 
-elif _view == "Agents":
-
-    # ---------------------------------------------------------------------------
-    # Scenario-generation agent (Agent 1): draft scenarios from a policy,
-    # self-check grounding, review, then add approved ones to the bank.
-    # ---------------------------------------------------------------------------
-    st.markdown("## Agents")
-    st.caption("Nothing here ships anything on its own. Every output is reviewed before it is used.")
+    st.markdown("### Generate scenarios from a policy")
+    st.caption(
+        "Draft failure scenarios from a policy document. Added scenarios behave like your "
+        "other custom scenarios: session-only, evaluable immediately on the Evaluate view."
+    )
     with st.expander("Scenario-generation agent: draft failure scenarios from a policy"):
         st.caption(
             "Paste a company policy. The agent drafts failure scenarios grounded "
@@ -1762,21 +1764,6 @@ elif _view == "Agents":
                     st.session_state["flash"] = f"Agent scenario '{_d['name']}' added and selected on the Evaluate view."
                     st.session_state["nav_view"] = "Evaluate"
                     st.rerun()
-
-    st.markdown("### Fix drafting")
-    st.caption(
-        "After a run with failed lenses, the Evaluate view offers corrected "
-        "responses for each failed lens, plus a policy clarification. Load one, "
-        "re-score it, and let the scorecard decide. Cost: 1 agent call."
-    )
-    st.markdown("### Debate panel")
-    st.caption(
-        "After any run, the Evaluate view offers a debate panel. Borderline "
-        "lenses are recommended, and any lens can be debated on demand. 3 "
-        "stances argue the lens, rebut each other, and a moderator decides "
-        "with dissent noted. Cost: 7 agent calls per lens. Advisory only; a "
-        "split panel routes to a human."
-    )
 
 elif _view == "Tools":
 
@@ -1863,6 +1850,11 @@ elif _view == "Tools":
                 key="dl_batch_results",
             )
 
+    st.caption(
+        "Verified Quick run (2026-10-22, first 10 cases): judge vs human "
+        "agreement 30/30, false passes 0. Run your own below; each run "
+        "reports its own numbers."
+    )
     with st.expander("Calibration and regression: run the labeled suite"):
         st.caption(
             "Every scenario graded both ways, the trap reply and the correct "
@@ -2034,9 +2026,10 @@ elif _view == "Tools":
                 key="dl_ledger",
             )
 
-st.markdown(
-    "---\n*Patterns: OWASP LLM Top 10, documented red-team techniques. "
-    "Operational framing: enterprise support operations experience.*\n\n"
-    "*Built for support operations: severity, escalation, and stakeholder impact, "
-    "applied to AI agent evaluation.*"
-)
+if _view == "Home":
+    st.markdown(
+        "---\n*Patterns: OWASP LLM Top 10, documented red-team techniques. "
+        "Operational framing: enterprise support operations experience.*\n\n"
+        "*Built for support operations: severity, escalation, and stakeholder impact, "
+        "applied to AI agent evaluation.*"
+    )
