@@ -13,6 +13,10 @@ response to that scenario, and get scores across three stakeholder lenses:
 
 One run = 3 judge calls (1 scenario x 3 metrics).
 
+Transcript import scores every agent turn of an uploaded conversation
+with the same engine, plus a conversation verdict. Share links preload
+a scenario and response from URL parameters.
+
 Patterns: OWASP LLM Top 10, documented red-team techniques.
 Operational framing: enterprise support operations experience.
 """
@@ -30,6 +34,15 @@ import io
 import json
 import re
 from datetime import datetime
+
+from urllib.parse import quote
+
+from transcript_tools import (
+    build_turn_inputs,
+    parse_transcript,
+    resolve_share_link,
+    summarize_transcript,
+)
 
 import streamlit as st
 
@@ -864,6 +877,29 @@ all_categories = CATEGORIES + st.session_state["user_categories"]
 all_scenarios = SCENARIOS + st.session_state["user_scenarios"]
 by_id = {s["id"]: s for s in all_scenarios}
 
+# Share-link preload (?scenario=<id>&response=<text>): validate against
+# the bank, stash as pendings, clear the parameters, and rerun so the
+# normal pending consumption picks them up before the pickers render.
+try:
+    _qp = dict(st.query_params)
+except Exception:
+    _qp = {}
+if _qp and ("scenario" in _qp or "response" in _qp):
+    _link = resolve_share_link(_qp, by_id)
+    if _link["error"]:
+        st.session_state["share_link_error"] = _link["error"]
+    else:
+        st.session_state["pending_cat"] = _link["category"]
+        st.session_state["pending_scn"] = _link["scenario_id"]
+        if _link["response"]:
+            st.session_state["pending_agent_response"] = _link["response"]
+            st.session_state["pending_preload"] = True
+    try:
+        st.query_params.clear()
+    except Exception:
+        pass
+    st.rerun()
+
 # View router: one quiet nav bar. The view lives in session state, so a
 # button click switches views on the next run. Every view's widgets keep
 # their own keys, and shared state (pickers, last run, bank) persists
@@ -1194,6 +1230,11 @@ if _view == "Home":
 elif _view == "Evaluate":
 
     st.markdown('<div class="eyebrow">AI SUPPORT AGENT EVALUATION</div>', unsafe_allow_html=True)
+    if "share_link_error" in st.session_state:
+        st.warning(
+            "Share link could not be applied: "
+            + st.session_state.pop("share_link_error")
+        )
     st.markdown(
         '<div class="hero-title">Your agent passed the demo.<br>Would it survive production?</div>',
         unsafe_allow_html=True,
@@ -1272,6 +1313,32 @@ elif _view == "Evaluate":
                             if _us["id"] == selected_id:
                                 _us["sample_response"] = sample
                 st.session_state[f"agent_response_{selected_id}"] = sample
+        if preset:
+            with st.expander("Share this case as a link"):
+                st.caption(
+                    "Open this link and the evaluator loads with this scenario "
+                    "and response prefilled. No account, no paste."
+                )
+                _cur_resp = (
+                    st.session_state.get(f"agent_response_{selected_id}", "")
+                    or preset.get("sample_response", "")
+                )
+                _share_url = (
+                    "https://support-agent-safety-evaluator.streamlit.app/"
+                    f"?category={quote(preset.get('category', ''))}"
+                    f"&scenario={quote(selected_id)}"
+                )
+                if _cur_resp and len(_cur_resp) <= 1500:
+                    _share_url += f"&response={quote(_cur_resp)}"
+                elif _cur_resp:
+                    st.warning(
+                        "Response too long for a reliable link; the link below omits it."
+                    )
+                st.code(_share_url)
+                st.caption(
+                    "On the deployed app. On a local run, use your own host "
+                    "with the same parameters."
+                )
         # Fix-agent load path: the load button cannot set this widget's state
         # directly (the widget is already created by the time the button's run
         # reaches the post-run section, which Streamlit forbids). Instead the
@@ -1281,6 +1348,10 @@ elif _view == "Evaluate":
             st.session_state[f"agent_response_{selected_id}"] = st.session_state.pop(
                 "pending_agent_response"
             )
+        if st.session_state.pop("pending_preload", False) and preset:
+            st.session_state[f"scenario_input_{selected_id}"] = preset["test"]
+            st.session_state[f"policy_context_{selected_id}"] = preset["context"]
+            st.session_state["system_prompt_box"] = SAMPLE_SYSTEM_PROMPT
         with st.form("eval_form"):
             scenario_input = st.text_area(
                 "Customer message (the test)",
@@ -1825,6 +1896,151 @@ elif _view == "Tools":
                 buf.getvalue(),
                 file_name="batch-results.csv",
                 key="dl_batch_results",
+            )
+
+    with st.expander("Import conversation transcript: score every agent turn"):
+        st.caption(
+            "Upload a JSON conversation instead of pasting one reply at a time. "
+            "Accepts a bare list of turns, or an object with turns, messages, or "
+            "conversation. Each turn needs a role (user/assistant) and content "
+            "(a string, or OpenAI-style text parts). Agent turns are scored with "
+            "the same 3-lens engine; each turn is judged against the preceding "
+            "customer message plus earlier turns as context. Transcripts are "
+            "session-only and never stored."
+        )
+        _tfile = st.file_uploader(
+            "Conversation JSON", type=["json"], key="transcript_upload"
+        )
+        _tpolicy = st.text_area(
+            "Policy the agent should have followed",
+            height=80, key="transcript_policy",
+        )
+        _tsev = st.selectbox(
+            "Severity for this conversation type",
+            ["S1", "S2", "S3"], index=1, key="transcript_severity",
+        )
+        _tredact = st.checkbox(
+            "Redact PII from customer messages and policy before judging "
+            "(agent turns are never redacted)",
+            value=True, key="transcript_redact",
+        )
+        _turns = None
+        if _tfile is not None:
+            try:
+                _tdata = json.load(_tfile)
+            except Exception as e:
+                st.error(f"Could not read this JSON file: {e}")
+                _tdata = None
+            if _tdata is not None:
+                _turns, _terr = parse_transcript(_tdata)
+                if _terr:
+                    st.error(_terr)
+                    _turns = None
+                else:
+                    _n_agent = sum(1 for r in _turns if r["role"] == "agent")
+                    st.write(
+                        f"Found {_n_agent} agent turns "
+                        f"({_n_agent * 3} judge calls)."
+                    )
+        if st.button("Score transcript", key="transcript_run_btn"):
+            _api = get_api_key()
+            if not _api:
+                st.error("Add GOOGLE_API_KEY in the app settings before running.")
+            elif not _turns:
+                st.warning("Upload a conversation JSON first.")
+            elif not _tpolicy.strip():
+                st.warning("Add the policy the agent should have followed.")
+            else:
+                _inputs = build_turn_inputs(_turns)
+                _trows = []
+                _tbar = st.progress(0)
+                _tredact_count = 0
+                for _j, _inp in enumerate(_inputs):
+                    _scen = _inp["scenario_input"]
+                    _pol = _tpolicy.strip()
+                    if _tredact:
+                        _scen, _cc = redact_pii(_scen)
+                        _pol, _cc2 = redact_pii(_pol)
+                        _tredact_count += sum(_cc.values()) + sum(_cc2.values())
+                    _res = run_evaluation(_api, _scen, _pol, "", _inp["agent_text"])
+                    _trows.append({
+                        "turn": _inp["index"],
+                        "agent_text": _inp["agent_text"],
+                        "results": _res,
+                    })
+                    _tbar.progress((_j + 1) / len(_inputs))
+                st.session_state["transcript_rows"] = _trows
+                st.session_state["transcript_severity"] = _tsev
+                st.session_state["transcript_redact_count"] = _tredact_count
+        if st.session_state.get("transcript_rows"):
+            _trows = st.session_state["transcript_rows"]
+            _summ = summarize_transcript(
+                _trows,
+                st.session_state.get("transcript_severity", "S2"),
+                overall_decision,
+            )
+            _lens_names = list(METRIC_SPECS.keys())
+            st.write(
+                f"**{_summ['turns_total']} agent turns, "
+                f"{_summ['passed_all']} passed all 3 lenses.** "
+                + " · ".join(
+                    f"{ln} failed {_summ['per_lens_fails'].get(ln, 0)}"
+                    for ln in _lens_names
+                )
+            )
+            st.write(
+                f"Conversation verdict: **{_summ['verdict']}**. {_summ['action']}"
+            )
+            if st.session_state.get("transcript_redact_count"):
+                st.caption(
+                    "PII redaction applied: "
+                    f"{st.session_state['transcript_redact_count']} replacement(s) "
+                    "across customer messages and policy. Agent turns were "
+                    "scored exactly as written."
+                )
+            _tframe = []
+            for _row in _trows:
+                _entry = {
+                    "Turn": _row["turn"],
+                    "Agent reply": (
+                        _row["agent_text"][:120]
+                        + ("..." if len(_row["agent_text"]) > 120 else "")
+                    ),
+                }
+                for _r in _row["results"]:
+                    _entry[f"{_r['name']}"] = (
+                        f"{_r['status']} {_r['score']:.2f}"
+                        if _r["score"] is not None else _r["status"]
+                    )
+                _tframe.append(_entry)
+            st.dataframe(_tframe, width="stretch")
+            if _summ["worst_turn"] is not None:
+                _worst = next(
+                    r for r in _trows if r["turn"] == _summ["worst_turn"]
+                )
+                with st.expander(f"Worst turn: turn {_summ['worst_turn']}"):
+                    st.write(_worst["agent_text"])
+                    for _r in _worst["results"]:
+                        st.write(f"**{_r['name']}:** {_r['status']} — {_r['reason']}")
+            _tbuf = io.StringIO()
+            _tfields = ["Turn", "Agent reply"] + [
+                f"{ln} status" for ln in _lens_names
+            ] + [f"{ln} score" for ln in _lens_names]
+            _twriter = csv.DictWriter(_tbuf, fieldnames=_tfields)
+            _twriter.writeheader()
+            for _row in _trows:
+                _tentry = {"Turn": _row["turn"], "Agent reply": _row["agent_text"]}
+                for _r in _row["results"]:
+                    _tentry[f"{_r['name']} status"] = _r["status"]
+                    _tentry[f"{_r['name']} score"] = (
+                        round(_r["score"], 3) if _r["score"] is not None else ""
+                    )
+                _twriter.writerow(_tentry)
+            st.download_button(
+                "Download transcript results (CSV)",
+                _tbuf.getvalue(),
+                file_name="transcript-results.csv",
+                key="dl_transcript_results",
             )
 
     st.caption(

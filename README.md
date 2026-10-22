@@ -97,6 +97,20 @@ Agreement results from the author's own calibration runs will be published here 
 
 For testing more than one response at a time (for example, a CRM export of past chats), the app scores a CSV row by row with the same engine: columns `customer_message`, `policy_context`, `agent_response`, plus an optional `name`. 100 rows = 300 judge calls, so batch runs follow QA sampling discipline: 100% of high-risk categories, a statistical sample of the rest.
 
+### Transcript import (Stage 1)
+
+No more pasting one reply at a time. On the Tools view, upload a JSON
+conversation (a bare list of turns, or an object with turns, messages,
+or conversation; each turn needs a role and content, OpenAI-style text
+parts included) and Tria scores every agent turn with the same 3-lens
+engine. Each turn is judged against the preceding customer message plus
+earlier turns as context, so cross-turn failures stay detectable. The
+result is a per-turn table, a conversation verdict rolled up from the
+worst turn with the severity you select, and a CSV download. Share links
+work the other way: on Evaluate, "Share this case as a link" builds a URL
+that loads a scenario and response prefilled, so a colleague opens a
+working demo instead of a blank form.
+
 ## Agents
 
 Three agents share the judge's Gemini fallback chain. None of them is
