@@ -8,6 +8,22 @@ function as a single pasted reply.
 
 HISTORY_CHARS = 2000
 
+# Demo governor: a synchronous Streamlit run cannot bound an unbounded
+# transcript (N agent turns x 3 sequential judge calls, plus Gemini rate
+# limits, plus no partial-result persistence if the session drops). Cap
+# transcript scoring at the first 5 agent turns and say so in the UI;
+# longer transcripts are scored by splitting the file or via batch CSV.
+DEMO_AGENT_TURN_CAP = 5
+
+
+def apply_demo_cap(inputs, cap=DEMO_AGENT_TURN_CAP):
+    """Cap a transcript run at the first `cap` agent-turn inputs.
+
+    Returns (capped_inputs, was_capped, total_inputs). The verdict covers
+    only the capped turns; the caller must disclose that when capped.
+    """
+    return inputs[:cap], len(inputs) > cap, len(inputs)
+
 
 def _turn_text(content):
     """Extract plain text from a turn's content: a string, a list of

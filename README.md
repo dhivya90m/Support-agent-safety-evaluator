@@ -106,7 +106,7 @@ parts included) and Tria scores every agent turn with the same 3-lens
 engine. Each turn is judged against the preceding customer message plus
 earlier turns as context, so cross-turn failures stay detectable. The
 result is a per-turn table, a conversation verdict rolled up from the
-worst turn with the severity you select, and a CSV download. Share links
+worst turn with the severity you select, and a CSV download. Demo mode caps scoring at the first 5 agent turns (15 judge calls); longer transcripts are scored by splitting the file or via batch CSV. Share links
 work the other way: on Evaluate, "Share this case as a link" builds a URL
 that loads a scenario and response prefilled, so a colleague opens a
 working demo instead of a blank form.

@@ -38,6 +38,8 @@ from datetime import datetime
 from urllib.parse import quote
 
 from transcript_tools import (
+    DEMO_AGENT_TURN_CAP,
+    apply_demo_cap,
     build_turn_inputs,
     parse_transcript,
     resolve_share_link,
@@ -1938,10 +1940,22 @@ elif _view == "Tools":
                     _turns = None
                 else:
                     _n_agent = sum(1 for r in _turns if r["role"] == "agent")
-                    st.write(
-                        f"Found {_n_agent} agent turns "
-                        f"({_n_agent * 3} judge calls)."
-                    )
+                    if _n_agent > DEMO_AGENT_TURN_CAP:
+                        st.warning(
+                            f"Demo mode: this transcript has {_n_agent} agent turns, "
+                            f"but only the first {DEMO_AGENT_TURN_CAP} will be scored "
+                            f"({_n_agent * 3} judge calls would outlast a browser session). "
+                            "Score the rest by splitting the file or via batch CSV."
+                        )
+                        st.write(
+                            f"Scoring the first {DEMO_AGENT_TURN_CAP} agent turns "
+                            f"({DEMO_AGENT_TURN_CAP * 3} judge calls)."
+                        )
+                    else:
+                        st.write(
+                            f"Found {_n_agent} agent turns "
+                            f"({_n_agent * 3} judge calls)."
+                        )
         if st.button("Score transcript", key="transcript_run_btn"):
             _api = get_api_key()
             if not _api:
@@ -1951,7 +1965,7 @@ elif _view == "Tools":
             elif not _tpolicy.strip():
                 st.warning("Add the policy the agent should have followed.")
             else:
-                _inputs = build_turn_inputs(_turns)
+                _inputs, _capped, _total = apply_demo_cap(build_turn_inputs(_turns))
                 _trows = []
                 _tbar = st.progress(0)
                 _tredact_count = 0
@@ -1972,6 +1986,8 @@ elif _view == "Tools":
                 st.session_state["transcript_rows"] = _trows
                 st.session_state["transcript_severity"] = _tsev
                 st.session_state["transcript_redact_count"] = _tredact_count
+                st.session_state["transcript_capped"] = _capped
+                st.session_state["transcript_total_turns"] = _total
         if st.session_state.get("transcript_rows"):
             _trows = st.session_state["transcript_rows"]
             _summ = summarize_transcript(
@@ -1991,6 +2007,13 @@ elif _view == "Tools":
             st.write(
                 f"Conversation verdict: **{_summ['verdict']}**. {_summ['action']}"
             )
+            if st.session_state.get("transcript_capped"):
+                st.warning(
+                    "Demo cap: this verdict covers only the first "
+                    f"{DEMO_AGENT_TURN_CAP} of "
+                    f"{st.session_state.get('transcript_total_turns')} agent turns. "
+                    "The remaining turns were not scored."
+                )
             if st.session_state.get("transcript_redact_count"):
                 st.caption(
                     "PII redaction applied: "
