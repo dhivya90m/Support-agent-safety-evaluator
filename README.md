@@ -95,6 +95,29 @@ Agreement results from the author's own calibration runs will be published here 
 
 For testing more than one response at a time (for example, a CRM export of past chats), the app scores a CSV row by row with the same engine: columns `customer_message`, `policy_context`, `agent_response`, plus an optional `name`. 100 rows = 300 judge calls, so batch runs follow QA sampling discipline: 100% of high-risk categories, a statistical sample of the rest.
 
+## Agents
+
+Three agents share the judge's Gemini fallback chain. None of them is
+autonomous: a human reviews every output before it is used.
+
+- **Scenario-generation agent.** Paste a company policy document and the
+  agent drafts failure scenarios grounded in it (1 to 3 at a time). A
+  second call self-checks each draft against the policy and flags any
+  draft that invents rules the policy does not state. You approve drafts
+  one by one; approved scenarios enter the bank and are evaluable
+  immediately from the pickers.
+- **Fix-drafting agent.** After any run with a failed lens, it drafts a
+  corrected response per failed lens, plus a policy clarification for the
+  human reviewer and a summary of what changed. Load a corrected
+  response into the evaluator and re-score it; the loop is draft,
+  review, re-score, never draft and ship.
+- **Debate panel.** For borderline lenses only (scores near the 0.7
+  threshold, where a verdict is genuinely contestable), 3 stances argue
+  the lens: Customer Advocate, Business Protector, and Policy Enforcer.
+  Each states a verdict, rebuts the other two, and a moderator
+  synthesizes a verdict with dissent noted. Cost: 7 agent calls per
+  contested lens. Advisory only; a split panel routes to a human.
+
 ## How It Works
 
 - Scenario presets load the customer message and its policy context into a
