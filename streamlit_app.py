@@ -1120,9 +1120,6 @@ if _view == "Home":
         "Tria is a pre-deployment safety gate for support AI agents. "
         "Paste a reply, and it tells you whether that reply ships, and why."
     )
-    if st.button("Run your first evaluation", key="home_go_evaluate"):
-        st.session_state["nav_view"] = "Evaluate"
-        st.rerun()
     if st.button("See a reply that should not ship", key="home_go_trap"):
         st.session_state["pending_cat"] = "Policy Hallucination"
         st.session_state["pending_scn"] = "1A"
@@ -1143,22 +1140,12 @@ if _view == "Home":
                 "One reply, scored for the customer, the business, and the "
                 "policy. Why: one happy customer is not proof a reply is safe."
             )
-            if st.button("Try it: the 60-day trap reply", key="home_card_scorecard"):
-                st.session_state["pending_cat"] = "Policy Hallucination"
-                st.session_state["pending_scn"] = "1A"
-                st.session_state["nav_view"] = "Evaluate"
-                st.rerun()
         with st.container(border=True):
             st.markdown("**Fix Drafting**")
             st.write(
                 "Corrected replies for failed lenses, then re-score. Why: "
                 "a failed score without a fix is just a report card."
             )
-            if st.button("Try it: load a fix, re-score, watch it clear", key="home_card_fix"):
-                st.session_state["pending_cat"] = "Policy Hallucination"
-                st.session_state["pending_scn"] = "1A"
-                st.session_state["nav_view"] = "Evaluate"
-                st.rerun()
         with st.container(border=True):
             st.markdown("**Scenario Generation**")
             st.write(
@@ -1175,11 +1162,6 @@ if _view == "Home":
                 "One line: clears, clears with review, or hold for fix. "
                 "Why: a score is not a decision, and teams ship on decisions."
             )
-            if st.button("Try it: watch HOLD FOR FIX turn into CLEARS", key="home_card_verdict"):
-                st.session_state["pending_cat"] = "Policy Hallucination"
-                st.session_state["pending_scn"] = "1A"
-                st.session_state["nav_view"] = "Evaluate"
-                st.rerun()
         with st.container(border=True):
             st.markdown("**Debate Panel**")
             st.write(
@@ -1187,11 +1169,6 @@ if _view == "Home":
                 "noted. Why: a borderline call should not be made by one "
                 "judge alone. It appears on Evaluate after a run."
             )
-            if st.button("Try it: make three voices argue one lens", key="home_card_debate"):
-                st.session_state["pending_cat"] = "Policy Hallucination"
-                st.session_state["pending_scn"] = "1A"
-                st.session_state["nav_view"] = "Evaluate"
-                st.rerun()
         with st.container(border=True):
             st.markdown("**Batch + Calibration**")
             st.write(
