@@ -4,6 +4,11 @@ Pure functions only, no Streamlit, so they can be unit-tested directly.
 The app imports these; the judge engine itself stays in streamlit_app.py
 and transcript turns are scored through the exact same run_evaluation
 function as a single pasted reply.
+
+NOTE: the deployed app inlines these functions in streamlit_app.py
+(Streamlit Cloud raised ImportError on the sibling import even with this
+file present at the repo root and byte-identical). This file is kept for
+unit tests only. Edit streamlit_app.py, not this file.
 """
 
 HISTORY_CHARS = 2000
