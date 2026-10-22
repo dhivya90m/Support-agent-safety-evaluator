@@ -2128,7 +2128,7 @@ elif _view == "Tools":
         )
         _tsev = st.selectbox(
             "Severity for this conversation type",
-            ["S1", "S2", "S3"], index=1, key="transcript_severity",
+            ["S1", "S2", "S3"], index=1, key="transcript_severity_pick",
         )
         _tredact = st.checkbox(
             "Redact PII from customer messages and policy before judging "
