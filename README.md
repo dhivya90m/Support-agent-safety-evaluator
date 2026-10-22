@@ -1,4 +1,6 @@
-# Support Agent Safety Evaluator
+# Tria
+
+Tria is a pre-deployment safety gate for support AI agents: paste a reply, and it tells you whether that reply ships, and why.
 
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-blue)
 ![Streamlit](https://img.shields.io/badge/UI-Streamlit-red)

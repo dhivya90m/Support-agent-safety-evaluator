@@ -779,7 +779,7 @@ def agent_debate_verdict(api_key, case_text, lens, positions, rebuttals):
 # ---------------------------------------------------------------------------
 # Streamlit UI
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Support Agent Safety Evaluator", page_icon="🛡️", layout="wide")
+st.set_page_config(page_title="Tria", page_icon="🛡️", layout="wide")
 
 # ---------------------------------------------------------------------------
 # Presentation layer only. The evaluation logic above is unchanged.
@@ -870,10 +870,14 @@ by_id = {s["id"]: s for s in all_scenarios}
 # across switches. View changes mount new containers, which rise in
 # through the existing rise animation.
 if "nav_view" not in st.session_state:
-    st.session_state["nav_view"] = "Evaluate"
+    st.session_state["nav_view"] = "Home"
 _view = st.session_state["nav_view"]
-_nav_cols = st.columns(4)
-for _nav_i, _nav_label in enumerate(["Evaluate", "Scenarios", "Agents", "Tools"]):
+st.markdown(
+    '<div style="font-weight:800;font-size:22px">Tria</div>',
+    unsafe_allow_html=True,
+)
+_nav_cols = st.columns(5)
+for _nav_i, _nav_label in enumerate(["Home", "Evaluate", "Scenarios", "Agents", "Tools"]):
     with _nav_cols[_nav_i]:
         if st.button(
             _nav_label,
@@ -1106,7 +1110,112 @@ def render_scorecard(p):
                 })
             st.success("Review recorded. The review ledger is on the Tools view.")
 
-if _view == "Evaluate":
+if _view == "Home":
+    st.markdown('<div class="eyebrow">TRIA</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="hero-title">Your agent passed the demo.<br>Would it survive production?</div>',
+        unsafe_allow_html=True,
+    )
+    st.write(
+        "Tria is a pre-deployment safety gate for support AI agents. "
+        "Paste a reply, and it tells you whether that reply ships, and why."
+    )
+    if st.button("Run your first evaluation", key="home_go_evaluate"):
+        st.session_state["nav_view"] = "Evaluate"
+        st.rerun()
+    if st.button("See a reply that should not ship", key="home_go_trap"):
+        st.session_state["pending_cat"] = "Policy Hallucination"
+        st.session_state["pending_scn"] = "1A"
+        st.session_state["nav_view"] = "Evaluate"
+        st.rerun()
+    st.markdown(
+        "An agent can satisfy the customer in front of it and still create "
+        "an incident behind it. Most evaluations score the reply. This one "
+        "scores the consequences, for the customer, the business, and the "
+        "policy that was supposed to hold."
+    )
+    st.markdown("### Everything inside, and why it is there")
+    _hc1, _hc2 = st.columns(2)
+    with _hc1:
+        with st.container(border=True):
+            st.markdown("**3-Lens Scorecard**")
+            st.write(
+                "One reply, scored for the customer, the business, and the "
+                "policy. Why: one happy customer is not proof a reply is safe."
+            )
+            if st.button("Try it: the 60-day trap reply", key="home_card_scorecard"):
+                st.session_state["pending_cat"] = "Policy Hallucination"
+                st.session_state["pending_scn"] = "1A"
+                st.session_state["nav_view"] = "Evaluate"
+                st.rerun()
+        with st.container(border=True):
+            st.markdown("**Fix Drafting**")
+            st.write(
+                "Corrected replies for failed lenses, then re-score. Why: "
+                "a failed score without a fix is just a report card."
+            )
+            if st.button("Try it: load a fix, re-score, watch it clear", key="home_card_fix"):
+                st.session_state["pending_cat"] = "Policy Hallucination"
+                st.session_state["pending_scn"] = "1A"
+                st.session_state["nav_view"] = "Evaluate"
+                st.rerun()
+        with st.container(border=True):
+            st.markdown("**Scenario Generation**")
+            st.write(
+                "Paste a policy, get failure scenarios, self-checked for "
+                "grounding. Why: your worst cases are hiding in your policy doc."
+            )
+            if st.button("Try it: paste a policy, find a new failure", key="home_card_agents"):
+                st.session_state["nav_view"] = "Agents"
+                st.rerun()
+    with _hc2:
+        with st.container(border=True):
+            st.markdown("**Release Decision**")
+            st.write(
+                "One line: clears, clears with review, or hold for fix. "
+                "Why: a score is not a decision, and teams ship on decisions."
+            )
+            if st.button("Try it: watch HOLD FOR FIX turn into CLEARS", key="home_card_verdict"):
+                st.session_state["pending_cat"] = "Policy Hallucination"
+                st.session_state["pending_scn"] = "1A"
+                st.session_state["nav_view"] = "Evaluate"
+                st.rerun()
+        with st.container(border=True):
+            st.markdown("**Debate Panel**")
+            st.write(
+                "Three voices argue a lens, a moderator decides, dissent "
+                "noted. Why: a borderline call should not be made by one "
+                "judge alone. It appears on Evaluate after a run."
+            )
+            if st.button("Try it: make three voices argue one lens", key="home_card_debate"):
+                st.session_state["pending_cat"] = "Policy Hallucination"
+                st.session_state["pending_scn"] = "1A"
+                st.session_state["nav_view"] = "Evaluate"
+                st.rerun()
+        with st.container(border=True):
+            st.markdown("**Batch + Calibration**")
+            st.write(
+                "Score a CSV of past chats. Grade the judge against human "
+                "verdicts. Why: one reply proves nothing, and a judge you "
+                "cannot grade is just another opinion."
+            )
+            if st.button("Try it: 30/30 agreement, 0 false passes", key="home_card_tools"):
+                st.session_state["nav_view"] = "Tools"
+                st.rerun()
+    st.caption(
+        "Also inside: scenario bank (add your own), human review ledger, "
+        "PII redaction on by default, downloadable reports."
+    )
+    st.markdown("### Calibrated, not just claimed")
+    st.write(
+        "On the Quick suite (first 10 cases), the judge matched every "
+        "human verdict, 30/30, and never passed a trap reply."
+    )
+    if st.button("Paste your worst reply. See if it ships.", key="home_go_evaluate2"):
+        st.session_state["nav_view"] = "Evaluate"
+        st.rerun()
+
+elif _view == "Evaluate":
 
     st.markdown('<div class="eyebrow">AI SUPPORT AGENT EVALUATION</div>', unsafe_allow_html=True)
     st.markdown(
