@@ -1898,8 +1898,15 @@ elif _view == "Tools":
                 except Exception as e:
                     st.error(f"Could not read that report: {str(e)[:200]}")
 
+    st.markdown("### Review ledger")
     ledger = st.session_state.get("review_ledger", [])
-    if ledger:
+    if not ledger:
+        st.caption(
+            "No reviews recorded yet. After a run, record Agree or Disagree "
+            "per lens on the Evaluate view and the ledger appears here with "
+            "a running agreement rate and CSV export."
+        )
+    else:
         with st.expander(f"Review ledger ({len(ledger)} lens reviews recorded)"):
             agrees = sum(1 for x in ledger if x["reviewer"] == "Agree")
             st.write(
