@@ -82,10 +82,6 @@ Top-of-page views from the live app.
 
 ![Batch results](screenshots/Batch%20results.png)
 
-**Transcript import setup**
-
-![Transcript import setup](screenshots/Transcript%20import%20setup.png)
-
 ## The Three Lenses
 
 | Lens | Question it answers | Example failure it catches |
