@@ -19,19 +19,19 @@ Top-of-page views from the live app.
 
 **Home**
 
-![Home view](screenshots/Home view.png)
+![Home view](screenshots/Home%20view.png)
 
 **Scenario bank**
 
-![Scenarios bank](screenshots/Scenarios bank.png)
+![Scenarios bank](screenshots/Scenarios%20bank.png)
 
 **Batch results**
 
-![Batch results](screenshots/Batch results.png)
+![Batch results](screenshots/Batch%20results.png)
 
 **Transcript import setup**
 
-![Transcript import setup](screenshots/Transcript import setup.png)
+![Transcript import setup](screenshots/Transcript%20import%20setup.png)
 
 ---
 
