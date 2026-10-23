@@ -72,15 +72,15 @@ Top-of-page views from the live app.
 
 **Home**
 
-![Home view](screenshots/Home%20view.png)
+![Home view](screenshots/Home.png)
 
 **Scenario bank**
 
 ![Scenarios bank](screenshots/Scenarios%20bank.png)
 
-**Batch results**
+**Batch mode**
 
-![Batch results](screenshots/Batch%20results.png)
+![Batch mode](screenshots/Tools.png)
 
 ## The Three Lenses
 
