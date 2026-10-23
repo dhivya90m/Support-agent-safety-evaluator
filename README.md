@@ -7,7 +7,7 @@ Tria is a pre-deployment safety gate for support AI agents: paste a reply, and i
 ![DeepEval 4.3.1](https://img.shields.io/badge/Evaluation-DeepEval%204.3.1-purple)
 ![Gemini Judge](https://img.shields.io/badge/LLM%20Judge-Gemini%20Flash%20family-orange)
 
-### Live Demo: [support-agent-safety-evaluator.streamlit.app](https://support-agent-safety-evaluator.streamlit.app/)
+### Live Demo: [Tria-support-agent-safety-evaluator.streamlit.app](https://Tria-support-agent-safety-evaluator.streamlit.app/)
 
 Pick a scenario, paste an agent response, and see the three lens scores live.
 
