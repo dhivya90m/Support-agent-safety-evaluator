@@ -1440,32 +1440,12 @@ if _view == "Home":
 
 elif _view == "Evaluate":
 
-    st.markdown('<div class="eyebrow">AI SUPPORT AGENT EVALUATION</div>', unsafe_allow_html=True)
     if "share_link_error" in st.session_state:
         st.warning(
             "Share link could not be applied: "
             + st.session_state.pop("share_link_error")
         )
-    st.markdown(
-        '<div class="hero-title">Your agent passed the demo.<br>Would it survive production?</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        '<div class="hero-sub">An agent can satisfy the customer in front of it and still '
-        "create an incident behind it: account details disclosed without identity "
-        "verification, a policy commitment the company never approved, a credit issued "
-        "beyond the agent's authority. Most evaluations score the reply. This one scores "
-        "the consequences, for the customer, the business, and the policy that was "
-        "supposed to hold.</div>",
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        "Pick a category and scenario (or add your own on the Scenarios view), "
-        "paste the agent's actual response to it, and run. Scoring uses "
-        "DeepEval G-Eval with a Gemini judge. One run uses 3 judge calls, "
-        "with automatic fallback if a judge model is unavailable."
-    )
+    st.markdown("Score one reply across 3 lenses.")
     selected_category = st.selectbox("Category", options=all_categories, key="cat_pick")
     in_category = [s for s in all_scenarios if s["category"] == selected_category]
     scenario_ids = [s["id"] for s in in_category]
