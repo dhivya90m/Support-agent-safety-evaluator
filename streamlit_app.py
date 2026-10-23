@@ -1368,34 +1368,36 @@ if _view == "Home":
         "Tria is a pre-deployment safety gate for support AI agents. "
         "Paste a reply, and it tells you whether that reply ships, and why."
     )
-    if st.button("See a reply that should not ship", key="home_go_trap"):
-        st.session_state["pending_cat"] = "Policy Hallucination"
-        st.session_state["pending_scn"] = "1A"
-        st.session_state["nav_view"] = "Evaluate"
-        st.rerun()
     st.markdown(
         "An agent can satisfy the customer in front of it and still create "
         "an incident behind it. Most evaluations score the reply. This one "
         "scores the consequences, for the customer, the business, and the "
         "policy that was supposed to hold."
     )
-    st.markdown("### Everything inside, and why it is there")
+    st.markdown(
+        '<div class="flow">Pick a scenario <span>→</span> Paste the reply <span>→</span> Get the 3-lens scorecard and release decision <span>→</span> Fix the failed lenses and re-score.</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div style="color:#C8F169; font-size:1.5rem; font-weight:800; margin:1.2rem 0 0.6rem 0;">Everything inside, and why it is there</div>',
+        unsafe_allow_html=True,
+    )
     _hc1, _hc2 = st.columns(2)
     with _hc1:
         with st.container(border=True):
-            st.markdown("**3-Lens Scorecard**")
+            st.markdown('<span style="color:#C8F169; font-weight:800;">3-Lens Scorecard</span>', unsafe_allow_html=True)
             st.write(
                 "One reply, scored for the customer, the business, and the "
                 "policy. Why: one happy customer is not proof a reply is safe."
             )
         with st.container(border=True):
-            st.markdown("**Fix Drafting**")
+            st.markdown('<span style="color:#C8F169; font-weight:800;">Fix Drafting</span>', unsafe_allow_html=True)
             st.write(
                 "Corrected replies for failed lenses, then re-score. Why: "
                 "a failed score without a fix is just a report card."
             )
         with st.container(border=True):
-            st.markdown("**Scenario Generation**")
+            st.markdown('<span style="color:#C8F169; font-weight:800;">Scenario Generation</span>', unsafe_allow_html=True)
             st.write(
                 "Paste a policy, get failure scenarios, self-checked for "
                 "grounding. Why: your worst cases are hiding in your policy doc."
@@ -1405,20 +1407,20 @@ if _view == "Home":
                 st.rerun()
     with _hc2:
         with st.container(border=True):
-            st.markdown("**Release Decision**")
+            st.markdown('<span style="color:#C8F169; font-weight:800;">Release Decision</span>', unsafe_allow_html=True)
             st.write(
                 "One line: clears, clears with review, or hold for fix. "
                 "Why: a score is not a decision, and teams ship on decisions."
             )
         with st.container(border=True):
-            st.markdown("**Debate Panel**")
+            st.markdown('<span style="color:#C8F169; font-weight:800;">Debate Panel</span>', unsafe_allow_html=True)
             st.write(
                 "Three voices argue a lens, a moderator decides, dissent "
                 "noted. Why: a borderline call should not be made by one "
                 "judge alone. It appears on Evaluate after a run."
             )
         with st.container(border=True):
-            st.markdown("**Batch + Calibration**")
+            st.markdown('<span style="color:#C8F169; font-weight:800;">Batch + Calibration</span>', unsafe_allow_html=True)
             st.write(
                 "Score a CSV of past chats. Grade the judge against human "
                 "verdicts. Why: one reply proves nothing, and a judge you "
@@ -1447,7 +1449,7 @@ elif _view == "Evaluate":
             + st.session_state.pop("share_link_error")
         )
     st.markdown(
-        '<div class="hero-title">Your agent passed the demo.<br>Would it survive production?</div>',
+        '<div class="hero-title">One reply. Three lenses.<br>One decision.</div>',
         unsafe_allow_html=True,
     )
     st.markdown(
@@ -1826,7 +1828,7 @@ elif _view == "Evaluate":
 elif _view == "Scenarios":
 
     st.markdown(
-        '<div class="hero-title">Your agent passed the demo.<br>Would it survive production?</div>',
+        '<div class="hero-title">Break it here,<br>before a customer does.</div>',
         unsafe_allow_html=True,
     )
     st.markdown(
@@ -2027,7 +2029,7 @@ elif _view == "Tools":
     # download one per run, upload a previous report to diff against it.
     # ---------------------------------------------------------------------------
     st.markdown(
-        '<div class="hero-title">Your agent passed the demo.<br>Would it survive production?</div>',
+        '<div class="hero-title">One reply is a demo.<br>A suite is proof.</div>',
         unsafe_allow_html=True,
     )
     st.markdown(
