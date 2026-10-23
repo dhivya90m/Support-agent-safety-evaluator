@@ -1028,9 +1028,11 @@ st.markdown(
         .hero-title {font-size:2.05rem !important; line-height:1.18 !important;}
         .hero-sub {font-size:1rem !important;}
         .eyebrow {font-size:0.82rem;}
+        .brand {font-size:2.6rem !important;}
         .block-container {padding-left:1.2rem !important; padding-right:1.2rem !important;}
     }
     .hero-title {font-size:2.6rem; font-weight:800; line-height:1.12; margin:0 0 0.6rem 0;}
+    .brand {color:#C8F169; font-size:3.5rem; font-weight:800; line-height:1.05; margin:0 0 0.4rem 0; animation:rise .6s ease backwards;}
     .hero-sub {font-size:1.08rem; color:#C9D1C0; line-height:1.55;}
     .card {background:#161B19; border:1px solid #2A332C; border-top:3px solid #C8F169;
            border-radius:10px; padding:1rem 1.1rem; height:100%;}
@@ -1120,7 +1122,7 @@ if "nav_view" not in st.session_state:
     st.session_state["nav_view"] = "Home"
 _view = st.session_state["nav_view"]
 st.markdown(
-    '<div style="font-weight:800;font-size:22px">Tria</div>',
+    '<div class="brand">TRIA</div>',
     unsafe_allow_html=True,
 )
 _nav_cols = st.columns(4)
@@ -1358,7 +1360,6 @@ def render_scorecard(p):
             st.success("Review recorded. The review ledger is on the Tools view.")
 
 if _view == "Home":
-    st.markdown('<div class="eyebrow">TRIA</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="hero-title">Your agent passed the demo.<br>Would it survive production?</div>',
         unsafe_allow_html=True,
@@ -1445,7 +1446,14 @@ elif _view == "Evaluate":
             "Share link could not be applied: "
             + st.session_state.pop("share_link_error")
         )
-    st.markdown("Score one reply across 3 lenses.")
+    st.markdown(
+        '<div class="hero-title">Your agent passed the demo.<br>Would it survive production?</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "Score one reply across 3 lenses. Get the release decision, "
+        "then fix and re-score the failed lenses."
+    )
     selected_category = st.selectbox("Category", options=all_categories, key="cat_pick")
     in_category = [s for s in all_scenarios if s["category"] == selected_category]
     scenario_ids = [s["id"] for s in in_category]
@@ -1817,8 +1825,14 @@ elif _view == "Evaluate":
 
 elif _view == "Scenarios":
 
-    st.markdown("## Scenarios")
-    st.caption("Pick one to evaluate, or add your own. Added scenarios are evaluable immediately.")
+    st.markdown(
+        '<div class="hero-title">Your agent passed the demo.<br>Would it survive production?</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "Browse the failure-scenario bank, or add your own. "
+        "Paste a policy and generate new scenarios, self-checked for grounding."
+    )
     _tog1, _tog2 = st.columns(2)
     with _tog1:
         if st.button("+ Category", key="add_cat_toggle"):
@@ -2012,9 +2026,14 @@ elif _view == "Tools":
     # release, not production traffic. Run reports are the regression history:
     # download one per run, upload a previous report to diff against it.
     # ---------------------------------------------------------------------------
-    st.markdown("## Tools")
-    st.caption("For release day, not demo day.")
-    st.caption("The power-user surface: volume, validation, and history.")
+    st.markdown(
+        '<div class="hero-title">Your agent passed the demo.<br>Would it survive production?</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "Batch-score past chats, or score a whole transcript turn by turn. "
+        "Calibrate the judge against human verdicts and keep the review ledger."
+    )
 
     api_key_tools = get_api_key()
 
