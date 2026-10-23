@@ -1427,10 +1427,6 @@ if _view == "Home":
         "Also inside: scenario bank (add your own), human review ledger, "
         "PII redaction on by default, downloadable reports."
     )
-    st.write(
-        "The judge is graded against human verdicts. Calibration runs "
-        "and the review ledger live in Tools."
-    )
 
 elif _view == "Evaluate":
 
