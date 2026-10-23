@@ -13,6 +13,25 @@ Pick a scenario, paste an agent response, and see the three lens scores live.
 
 Hosted on Streamlit Community Cloud.
 
+## Table of Contents
+
+- [Screenshots](#screenshots)
+- [What It Does](#what-it-does)
+- [The Three Lenses](#the-three-lenses)
+- [Scenario Coverage](#scenario-coverage)
+- [Severity Model](#severity-model)
+- [Calibration and Decision Discipline](#calibration-and-decision-discipline)
+- [Batch Mode](#batch-mode)
+  - [Transcript import (Stage 1)](#transcript-import-stage-1)
+- [Agents](#agents)
+- [How It Works](#how-it-works)
+- [Tech Stack](#tech-stack)
+- [Run Locally](#run-locally)
+- [Design Notes](#design-notes)
+- [Limitations](#limitations)
+- [Scaling This in an Enterprise](#scaling-this-in-an-enterprise)
+- [Sources](#sources)
+
 ## Screenshots
 
 Top-of-page views from the live app.
