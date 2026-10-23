@@ -1402,9 +1402,6 @@ if _view == "Home":
                 "Paste a policy, get failure scenarios, self-checked for "
                 "grounding. Why: your worst cases are hiding in your policy doc."
             )
-            if st.button("Try it: paste a policy, find a new failure", key="home_card_agents"):
-                st.session_state["nav_view"] = "Scenarios"
-                st.rerun()
     with _hc2:
         with st.container(border=True):
             st.markdown('<span style="color:#C8F169; font-weight:800;">Release Decision</span>', unsafe_allow_html=True)
@@ -1426,9 +1423,6 @@ if _view == "Home":
                 "verdicts. Why: one reply proves nothing, and a judge you "
                 "cannot grade is just another opinion."
             )
-            if st.button("Try it: grade the judge against human verdicts", key="home_card_tools"):
-                st.session_state["nav_view"] = "Tools"
-                st.rerun()
     st.caption(
         "Also inside: scenario bank (add your own), human review ledger, "
         "PII redaction on by default, downloadable reports."
@@ -1437,9 +1431,6 @@ if _view == "Home":
         "The judge is graded against human verdicts. Calibration runs "
         "and the review ledger live in Tools."
     )
-    if st.button("Paste your worst reply. See if it ships.", key="home_go_evaluate2"):
-        st.session_state["nav_view"] = "Evaluate"
-        st.rerun()
 
 elif _view == "Evaluate":
 
