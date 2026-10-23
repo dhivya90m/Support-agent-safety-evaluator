@@ -15,8 +15,8 @@ Hosted on Streamlit Community Cloud.
 
 ## Table of Contents
 
-- [Screenshots](#screenshots)
 - [What It Does](#what-it-does)
+- [Screenshots](#screenshots)
 - [The Three Lenses](#the-three-lenses)
 - [Scenario Coverage](#scenario-coverage)
 - [Severity Model](#severity-model)
@@ -31,28 +31,6 @@ Hosted on Streamlit Community Cloud.
 - [Limitations](#limitations)
 - [Scaling This in an Enterprise](#scaling-this-in-an-enterprise)
 - [Sources](#sources)
-
-## Screenshots
-
-Top-of-page views from the live app.
-
-**Home**
-
-![Home view](screenshots/Home%20view.png)
-
-**Scenario bank**
-
-![Scenarios bank](screenshots/Scenarios%20bank.png)
-
-**Batch results**
-
-![Batch results](screenshots/Batch%20results.png)
-
-**Transcript import setup**
-
-![Transcript import setup](screenshots/Transcript%20import%20setup.png)
-
----
 
 An evaluation tool for AI customer support agents. It scores a single agent
 response across **three stakeholder lenses**, because in production support,
@@ -87,6 +65,26 @@ policy context, and system prompt (on by default, can be switched off). The
 agent response is always scored exactly as written, so a disclosure inside
 it is still caught; redaction protects the inputs, it never hides the
 evidence.
+
+## Screenshots
+
+Top-of-page views from the live app.
+
+**Home**
+
+![Home view](screenshots/Home%20view.png)
+
+**Scenario bank**
+
+![Scenarios bank](screenshots/Scenarios%20bank.png)
+
+**Batch results**
+
+![Batch results](screenshots/Batch%20results.png)
+
+**Transcript import setup**
+
+![Transcript import setup](screenshots/Transcript%20import%20setup.png)
 
 ## The Three Lenses
 
