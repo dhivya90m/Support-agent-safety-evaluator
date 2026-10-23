@@ -268,18 +268,25 @@ def run_evaluation(api_key, scenario_input, policy_context, system_prompt, agent
 
     candidates = get_judge_candidates()
     results = []
+    # Sticky judge: once a model succeeds for a lens, later lenses try it
+    # first, so one scorecard is judged by one model whenever possible
+    # instead of mixing models lens by lens (and re-hitting a model that
+    # just failed). Availability fallback still walks the chain.
+    preferred = None
     for name in METRIC_SPECS:
         if on_step is not None:
             on_step(name)
         last_error = None
         used_model = None
         metric = None
-        for model_name in candidates:
+        order = ([preferred] + [c for c in candidates if c != preferred]) if preferred else candidates
+        for model_name in order:
             judge = GeminiModel(model=model_name, api_key=api_key, temperature=0)
             metric = build_metric(name, judge)
             try:
                 metric.measure(test_case)
                 used_model = model_name
+                preferred = model_name
                 last_error = None
                 break
             except Exception as e:
