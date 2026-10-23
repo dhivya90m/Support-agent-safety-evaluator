@@ -11,7 +11,7 @@ Tria is a pre-deployment safety gate for support AI agents: paste a reply, and i
 
 Pick a scenario, paste an agent response, and see the three lens scores live.
 
-Hosted on Streamlit Community Cloud (free tier); the app sleeps after inactivity and wakes when opened.
+Hosted on Streamlit Community Cloud.
 
 ## Screenshots
 
